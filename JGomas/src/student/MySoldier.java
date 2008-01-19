@@ -39,6 +39,12 @@ public class MySoldier extends CSoldier {
 	 * TODO: Mover a la clase MyComponents 
 	 */
 	protected enum AgentType { SOLDIER, MEDIC, FIELDOPS };
+	private static AgentType parseAgentType(String t) {
+		if (t.equals("SOLDIER")) return AgentType.SOLDIER;
+		if (t.equals("MEDIC")) return AgentType.MEDIC;
+		if (t.equals("FIELDOPS")) return AgentType.FIELDOPS;
+		return AgentType.SOLDIER;
+	}
 	/**
 	 * Nombre del servicio de comunicaciones. Depende del equipo del agente
 	 */
@@ -50,15 +56,16 @@ public class MySoldier extends CSoldier {
 	
 	protected void setup() {
 	
+		AddServiceType("Communications");
 		super.setup();
 		// Definimos el tipo de Agente
 		m_nAgentType = AgentType.SOLDIER;
 		// Definimos el nombre de los servicios
 		if (m_eTeam == TEAM_AXIS) {
-			m_sCommunicationsService = "Comunications_Axis";
+			m_sCommunicationsService = "Communications_Axis";
 		}
 		else {
-			m_sCommunicationsService = "Comunications_Allied";
+			m_sCommunicationsService = "Communications_Allied";
 		}
 		SetUpPriorities();
 		// Comienza la comunicacion con el resto de agentes
@@ -69,6 +76,8 @@ public class MySoldier extends CSoldier {
 	 * Comienza la comunicacion entre el agente y el resto del equipo
 	 */
 	protected void StartAgentCommunications() {
+		// Comienza el comportamiento de comunicaciones
+		LaunchCommunicationsBehaviour();
 		try {
 			// Busca los agentes con servicio Comunications
 			DFAgentDescription dfd = new DFAgentDescription();
@@ -82,18 +91,24 @@ public class MySoldier extends CSoldier {
 				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
 				for ( int i = 0; i < result.length; i++ ) {
 					AID agent = result[i].getName();
-					msg.addReceiver(agent);
+					// No nos lo enviamos a nosotros mismos
+					if (!agent.equals(getName())) {
+						System.out.println(getName() + " a " + agent.getName());
+						msg.addReceiver(agent);
+					}
 				}
 				msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
 				msg.setConversationId("COMM_SUBSCRIPTION");
 				msg.setContent(" ( " + m_nAgentType + " ) ");
 				send(msg);
 			}
+			else {
+				System.out.println("No hay ningun agente");
+			}
 		} catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
-		// Comienza el comportamiento de comunicaciones
-		LaunchCommunicationsBehaviour();
+		
 	}
 	
 	private void LaunchCommunicationsBehaviour() {
@@ -112,18 +127,19 @@ public class MySoldier extends CSoldier {
 			}
 			private AgentType ContentsToAgentType(String s) {
 				StringTokenizer tokens = new StringTokenizer(s);
-				tokens.nextToken(); // Quita "("
-				System.out.println("Tipo de Agente " + tokens.nextToken());
+				tokens.nextToken(); // Quita (
 				//AgentType retValue = (AgentType) Integer.parseInt(tokens.nextToken());
-				return AgentType.SOLDIER;
+				return parseAgentType(tokens.nextToken());
 			}
 			public void action() {
 				MessageTemplate template = MessageTemplate.MatchAll();
 				ACLMessage msgLO = receive(template);
 				if (msgLO != null) {
-					if (msgLO.getConversationId() == "COM_SUBSCRIPTION") {
+					if (msgLO.getConversationId() == "COMM_SUBSCRIPTION") {
 						// 
 						AID cSender = msgLO.getSender();
+						System.out.println("Leida suscripcion de agente tipo " + 
+								ContentsToAgentType(msgLO.getContent()));
 						//AgentType nType = ContentsToAgentType(msgLO.getContents());
 					}
 					// else if (msgLO.getConversationId() == "LO QUE SEA") {}
