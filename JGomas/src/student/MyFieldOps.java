@@ -24,33 +24,109 @@ import es.upv.dsic.gti_ia.jgomas.Vector3D;
 
 /**
  * 
- * Es el agente que guia al grupo porque hace uso de la rutina de busqueda del 
- * camino hacia la bandera.
- * 
  * @version 1.0
  * @author carlos
  */
-public class AgenteMando extends CSoldier {
+public class MyFieldOps extends CSoldier {
 	
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+	
 	/**
-	 * Nombre de servicio de Vigia. Toma los valores <em>"Lookout_Allied"</em> o <em>"Lookout_Axis"</em>
+	 * Nombre del servicio de comunicaciones. Depende del equipo del agente
 	 */
-	protected String m_sLookoutService;
-
+	protected String m_sCommunicationsService;
+	/**
+	 * Tipo del agente AgentType.SOLDIER
+	 */
+	protected MyComponents.AgentType m_nAgentType;
+	
 	protected void setup() {
-		
+	
+		AddServiceType("Communications");
 		super.setup();
-		if (m_eTeam == TEAM_AXIS) 
-			m_sLookoutService = "Lookout_Axis";
-		else
-			m_sLookoutService = "Lookout_Allied";
+		// Definimos el tipo de Agente
+		m_nAgentType = MyComponents.AgentType.SOLDIER;
+		// Definimos el nombre de los servicios
+		if (m_eTeam == TEAM_AXIS) {
+			m_sCommunicationsService = "Communications_Axis";
+		}
+		else {
+			m_sCommunicationsService = "Communications_Allied";
+		}
 		SetUpPriorities();
-		SuscribeLookout();
-		LaunchLookoutResponseBehaviour();	
+		// Comienza la comunicacion con el resto de agentes
+		StartAgentCommunications();
+	
+	}
+	/**
+	 * Comienza la comunicacion entre el agente y el resto del equipo
+	 */
+	protected void StartAgentCommunications() {
+		// Comienza el comportamiento de comunicaciones
+		LaunchCommunicationsBehaviour();
+		try {
+			// Busca los agentes con servicio Comunications
+			DFAgentDescription dfd = new DFAgentDescription();
+			ServiceDescription sd = new ServiceDescription();
+			sd.setType(m_sCommunicationsService);
+			dfd.addServices(sd);
+			DFAgentDescription[] result = DFService.search(this, dfd);
+			if (result.length > 0) {
+				// Envia un mensaje de suscripcion a cada uno
+				System.out.println("Existen agentes");
+				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+				for ( int i = 0; i < result.length; i++ ) {
+					AID agent = result[i].getName();
+					// No nos lo enviamos a nosotros mismos
+					if (!agent.equals(getName())) {
+						System.out.println(getName() + " a " + agent.getName());
+						msg.addReceiver(agent);
+					}
+				}
+				msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+				msg.setConversationId("COMM_SUBSCRIPTION");
+				msg.setContent(" ( " + m_nAgentType + " ) ");
+				send(msg);
+			}
+			else {
+				System.out.println("No hay ningun agente");
+			}
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+		
+	}
+	
+	private void LaunchCommunicationsBehaviour() {
+		addBehaviour(new CyclicBehaviour() {
+			private static final long serialVersionUID = 1L;
+
+			private MyComponents.AgentType ContentsToAgentType(String s) {
+				StringTokenizer tokens = new StringTokenizer(s);
+				tokens.nextToken(); // Quita (
+				//AgentType retValue = (AgentType) Integer.parseInt(tokens.nextToken());
+				return MyComponents.parseAgentType(tokens.nextToken());
+			}
+			public void action() {
+				MessageTemplate template = MessageTemplate.MatchAll();
+				ACLMessage msgLO = receive(template);
+				if (msgLO != null) {
+					if (msgLO.getConversationId() == "COMM_SUBSCRIPTION") {
+						// 
+						AID cSender = msgLO.getSender();
+						System.out.println("Leida suscripcion de agente tipo " + 
+								ContentsToAgentType(msgLO.getContent()));
+						//AgentType nType = ContentsToAgentType(msgLO.getContents());
+					}
+					// else if (msgLO.getConversationId() == "LO QUE SEA") {}
+				}
+	
+			}
+		});
+		
 	}
 	
 	/**
@@ -61,7 +137,7 @@ public class AgenteMando extends CSoldier {
 			// Busco los agentes que dan el servicio vigia
 			DFAgentDescription dfd = new DFAgentDescription();
 			ServiceDescription sd = new ServiceDescription();
-			sd.setType(m_sLookoutService);
+			//sd.setType(m_sLookoutService);
 			dfd.addServices(sd);
 			DFAgentDescription[] result = DFService.search(this, dfd);
 			if (result.length > 0) {
