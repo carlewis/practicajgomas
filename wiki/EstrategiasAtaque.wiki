@@ -23,4 +23,14 @@ Despues hay que comprobar que existen caminos seguros entre estos puntos:
   * Punto de Ataque del Señuelo - Punto Distante del Señuelo
   * Base - Punto de Ataque Principal
 
-Si todos los caminos son 
+Si todos los caminos son seguros se pasa a la ejecución del ataque. 
+
+=== Ejecución del Ataque ===
+
+Tiene que existir un agente que determine la validez de la estrategia con lo que se crean al menos los roles de *lider*, *señuelo*, y *resto del equipo*. 
+
+En primer lugar se envia al señuelo a su Punto de Ataque para que atraiga la atención del equipo contrario. Se envia un segundo soldado, un médico y un operador de campo (FieldOps) al punto Distante del Señuelo. Se envia al resto de atacantes al Punto de Ataque Principal.
+
+El señuelo se acerca al equipo contrario y dispara hasta que los agentes contrarios le persiguen, hasta el punto Distante, donde el médico tiene preparados uno o varios MedicPacks y el operador de campo tiene municiones, el segundo agente cubre la retirada. 
+
+El resto del equipo comienza una ofensiva hacia la bandera que si funciona estará menos defendida de lo habitual.
