@@ -2,37 +2,123 @@ package student;
 
 
 import jade.core.AID;
+import jade.core.behaviours.*;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
-import java.util.Iterator;
+import jade.lang.acl.MessageTemplate;
 
-import es.upv.dsic.gti_ia.jgomas.CSoldier;
+import java.util.Iterator;
+import java.util.StringTokenizer;
+
+import es.upv.dsic.gti_ia.jgomas.CMedic;
 import es.upv.dsic.gti_ia.jgomas.CPack;
 import es.upv.dsic.gti_ia.jgomas.CSight;
 import es.upv.dsic.gti_ia.jgomas.CTask;
 import es.upv.dsic.gti_ia.jgomas.Vector3D;
 
-/**
- * Persigue al agente que se encuentre mas lejos de su posicion actual
- * @author carlos
- *
- */
-public class AgenteSimple extends CSoldier {
+public class MyMedic extends CMedic {
 	
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+	/**
+	 * Nombre del servicio de comunicaciones. Depende del equipo del agente
+	 */
+	protected String m_sCommunicationsService;
+	/**
+	 * Tipo del agente AgentType.SOLDIER
+	 */
+	protected MyComponents.AgentType m_nAgentType;
+
 
 	protected void setup() {
-
+		
+		AddServiceType("Communications");
 		super.setup();
+		// Definimos el tipo de Agente
+		m_nAgentType = MyComponents.AgentType.MEDIC;
+		// Definimos el nombre de los servicios
+		if (m_eTeam == TEAM_AXIS) {
+			m_sCommunicationsService = "Communications_Axis";
+		}
+		else {
+			m_sCommunicationsService = "Communications_Allied";
+		}
 		SetUpPriorities();
+		// Comienza la comunicacion con el resto de agentes
+		StartAgentCommunications();
+		}
+	/**
+	 * Comienza la comunicacion entre el agente y el resto del equipo
+	 */
+	protected void StartAgentCommunications() {
+		// Comienza el comportamiento de comunicaciones
+		LaunchCommunicationsBehaviour();
+		try {
+			// Busca los agentes con servicio Comunications
+			DFAgentDescription dfd = new DFAgentDescription();
+			ServiceDescription sd = new ServiceDescription();
+			sd.setType(m_sCommunicationsService);
+			dfd.addServices(sd);
+			DFAgentDescription[] result = DFService.search(this, dfd);
+			if (result.length > 0) {
+				// Envia un mensaje de suscripcion a cada uno
+				System.out.println("Existen agentes");
+				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+				for ( int i = 0; i < result.length; i++ ) {
+					AID agent = result[i].getName();
+					// No nos lo enviamos a nosotros mismos
+					if (!agent.equals(getName())) {
+						System.out.println(getName() + " a " + agent.getName());
+						msg.addReceiver(agent);
+					}
+				}
+				msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+				msg.setConversationId("COMM_SUBSCRIPTION");
+				msg.setContent(" ( " + m_nAgentType + " ) ");
+				send(msg);
+			}
+			else {
+				System.out.println("No hay ningun agente");
+			}
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+		
 	}
+	
+	private void LaunchCommunicationsBehaviour() {
+		addBehaviour(new CyclicBehaviour() {
+			private static final long serialVersionUID = 1L;
+
+			private MyComponents.AgentType ContentsToAgentType(String s) {
+				StringTokenizer tokens = new StringTokenizer(s);
+				tokens.nextToken(); // Quita (
+				return MyComponents.parseAgentType(tokens.nextToken());
+			}
+			public void action() {
+				MessageTemplate template = MessageTemplate.MatchAll();
+				ACLMessage msgLO = receive(template);
+				if (msgLO != null) {
+					if (msgLO.getConversationId() == "COMM_SUBSCRIPTION") {
+						// 
+						AID cSender = msgLO.getSender();
+						System.out.println("Leida suscripcion de agente tipo " + 
+								ContentsToAgentType(msgLO.getContent()));
+						//AgentType nType = ContentsToAgentType(msgLO.getContents());
+					}
+					// else if (msgLO.getConversationId() == "LO QUE SEA") {}
+				}
+			}
+		});
+		
+	}
+
 	
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class
@@ -54,12 +140,12 @@ public class AgenteSimple extends CSoldier {
 	 */
 
 	protected void CallForMedic() {
-		
+
 		try {
+
 			DFAgentDescription dfd = new DFAgentDescription();
 			ServiceDescription sd = new ServiceDescription();
 			sd.setType(m_sMedicService);
-			System.out.println("Realizando CFM " + m_sMedicService);
 			dfd.addServices(sd);
 			DFAgentDescription[] result = DFService.search(this, dfd);
 
@@ -71,8 +157,6 @@ public class AgenteSimple extends CSoldier {
 				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
 
 				for ( int i = 0; i < result.length; i++ ) {
-					System.out.println("enviando mensaje a " + result[i].getName());
-					
 					DFAgentDescription dfdMedic = result[i];
 					AID Medic = dfdMedic.getName();
 					if ( ! Medic.equals(getName()) )
@@ -281,7 +365,7 @@ public class AgenteSimple extends CSoldier {
 	 */
 	protected void CreateControlPoints() {
 
-		//int iMaxCP = 0;
+		int iMaxCP = 0;
 		
 		switch ( m_eClass ) {
 		case CLASS_MEDIC:
@@ -290,7 +374,7 @@ public class AgenteSimple extends CSoldier {
 			break;
 			
 		case CLASS_SOLDIER:
-			/*iMaxCP = (int) (Math.random() * 5) + 5;
+			iMaxCP = (int) (Math.random() * 5) + 5;
 			m_ControlPoints = new Vector3D [iMaxCP];
 			for (int i = 0; i < iMaxCP; i++ ) {
 				Vector3D ControlPoints = new Vector3D();
@@ -306,34 +390,9 @@ public class AgenteSimple extends CSoldier {
 						break;
 					}
 				}
-			}*/
-			// Mi metodo
-			m_ControlPoints = new Vector3D[7];
-			// Angulo aleatorio +-30, +-20 y +-10
-			double[] ANGLES = {-0.5236, -0.34907, -0.17453, 0, 0.17453, 0.34907, 0.5236};
-			double[] LENGTHS = {0.7, 0.8, 0.9, 1, 0.9, 0.8, 0.7};
-			double PATROL_RADIO = 50.0;
-			double fPatrolAngle, fPatrolPointX, fPatrolPointZ;
-			int i;
-			do {
-				fPatrolAngle = 2 * Math.PI * Math.random();
-				for (i = 0; i < 7; i++) {
-					fPatrolPointX = m_Map.GetTargetX() + PATROL_RADIO * LENGTHS[i] * 
-						Math.cos(fPatrolAngle + ANGLES[i]);
-					fPatrolPointZ = m_Map.GetTargetZ() + PATROL_RADIO * LENGTHS[i] * 
-						Math.sin(fPatrolAngle + ANGLES[i]);
-					if (!CheckStaticPosition(fPatrolPointX, fPatrolPointZ))
-						continue;
-				}
-			} while (i < 7); 
-			for (i = 0; i < 7; i++) {
-				Vector3D cControlPoint = new Vector3D();
-				cControlPoint.x = m_Map.GetTargetX() + 100 * LENGTHS[i] * Math.cos(fPatrolAngle + ANGLES[i]);
-				cControlPoint.z = m_Map.GetTargetZ() + 100 * LENGTHS[i] * Math.sin(fPatrolAngle + ANGLES[i]);
-				m_ControlPoints[i] = cControlPoint;
 			}
 			break;
-
+			
 		case CLASS_ENGINEER:
 		case CLASS_NONE:
 		default:
@@ -417,25 +476,28 @@ public class AgenteSimple extends CSoldier {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
+	/**
+	 * Action to do when the agent is looking at. 
+	 * 
+	 * This method is called just after Look method has ended. 
+	 *   
+	 * <em> It's very useful to overload this method. </em>
+	 * 
+	 */
 	protected void PerformLookAction() {
-		// El vigia no ve a nadie
-		if ( m_FOVObjects.isEmpty() )
-			return;
-		// Recorremos los objetos a la vista
-		Iterator it =  m_FOVObjects.iterator();
-		while ( it.hasNext() ) 
-		{
-			CSight s = (CSight) it.next();
+	/*	try {
+			DFAgentDescription dfd = new DFAgentDescription();
+			ServiceDescription sd = new ServiceDescription();
+			sd.setType("RespondLookOut");
+			dfd.addServices(sd);
+			//DFAgentDescription[] result = DFService.search(this, dfd);
+			// Al no poner nada en el dfd en result estan todos los agentes 
+			// de los dos equipos
 
-			// Mira el equipo del objeto
-			int eTeam = s.getTeam();
-			if ((eTeam > 0) && (eTeam != this.m_eTeam)) {
-				/*System.out.println("Vigia: He visto alguien!!");
-				System.out.println("       Esta en la posicion: " + s.getPosition().x + 
-						" " + s.getPosition().z);
-				System.out.println("       Equipo " + eTeam);*/
-			}
-		}
+			
+		} catch (FIPAException e) {
+			
+		}*/
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -447,6 +509,28 @@ public class AgenteSimple extends CSoldier {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CMedic class
 	//
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////
+	/**
+	 * Decides if agent accepts the CFM request 
+	 * 
+	 * This method is a decision function invoked when a CALL FOR MEDIC request has arrived.
+	 * Parameter <tt> sContent</tt> is the content of message received in <tt> CFM</tt> responder behaviour as
+	 * result of a <tt> CallForMedic</tt> request, so it must be: <tt> ( x , y , z ) ( health ) </tt>.
+	 * By default, the return value is <tt> TRUE</tt>, so agents always accept all CFM requests.
+	 *   
+	 * <em> It's very useful to overload this method. </em>
+	 *   
+	 * @param _sContent
+	 * @return <tt> TRUE</tt> 
+	 * 
+	 */
+	protected boolean checkMedicAction(String _sContent) {
+		// We always go to help
+		return ( true );
+	}
+	/////////////////////////////////////////////////////////////////////////////////////////////////////
+	
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	/**

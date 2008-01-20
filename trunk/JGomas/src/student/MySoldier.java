@@ -34,17 +34,7 @@ public class MySoldier extends CSoldier {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	/**
-	 * Tipos de Agentes
-	 * TODO: Mover a la clase MyComponents 
-	 */
-	protected enum AgentType { SOLDIER, MEDIC, FIELDOPS };
-	private static AgentType parseAgentType(String t) {
-		if (t.equals("SOLDIER")) return AgentType.SOLDIER;
-		if (t.equals("MEDIC")) return AgentType.MEDIC;
-		if (t.equals("FIELDOPS")) return AgentType.FIELDOPS;
-		return AgentType.SOLDIER;
-	}
+	
 	/**
 	 * Nombre del servicio de comunicaciones. Depende del equipo del agente
 	 */
@@ -52,14 +42,14 @@ public class MySoldier extends CSoldier {
 	/**
 	 * Tipo del agente AgentType.SOLDIER
 	 */
-	protected AgentType m_nAgentType;
+	protected MyComponents.AgentType m_nAgentType;
 	
 	protected void setup() {
 	
 		AddServiceType("Communications");
 		super.setup();
 		// Definimos el tipo de Agente
-		m_nAgentType = AgentType.SOLDIER;
+		m_nAgentType = MyComponents.AgentType.SOLDIER;
 		// Definimos el nombre de los servicios
 		if (m_eTeam == TEAM_AXIS) {
 			m_sCommunicationsService = "Communications_Axis";
@@ -115,21 +105,11 @@ public class MySoldier extends CSoldier {
 		addBehaviour(new CyclicBehaviour() {
 			private static final long serialVersionUID = 1L;
 
-			private void ParseContents(String c) {
-				StringTokenizer tokens = new StringTokenizer(c);
-				/*tokens.nextToken(); // Get "("
-				double x = Double.parseDouble(tokens.nextToken());
-				tokens.nextToken(); // Get ","
-				double y = Double.parseDouble(tokens.nextToken());
-				tokens.nextToken(); // Get ","
-				double z = Double.parseDouble(tokens.nextToken());
-				System.out.println("Mensaje del vigia (" + x + "," + y + "," + z + ")");*/
-			}
-			private AgentType ContentsToAgentType(String s) {
+			private MyComponents.AgentType ContentsToAgentType(String s) {
 				StringTokenizer tokens = new StringTokenizer(s);
 				tokens.nextToken(); // Quita (
 				//AgentType retValue = (AgentType) Integer.parseInt(tokens.nextToken());
-				return parseAgentType(tokens.nextToken());
+				return MyComponents.parseAgentType(tokens.nextToken());
 			}
 			public void action() {
 				MessageTemplate template = MessageTemplate.MatchAll();
@@ -144,23 +124,7 @@ public class MySoldier extends CSoldier {
 					}
 					// else if (msgLO.getConversationId() == "LO QUE SEA") {}
 				}
-
-				/*MessageTemplate template = MessageTemplate.MatchConversationId(arg0) 
-					MessageTemplate.and(
-						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
-						MessageTemplate.MatchConversationId("TEAM_COMM"));
-				int iPerformative;
-				ACLMessage msgLO = receive(template);
-				if ( msgLO != null ) {
-					String sContent = msgLO.getContent();
-					ParseContents(sContent);
-					iPerformative = ACLMessage.AGREE;
-					ACLMessage reply = msgLO.createReply();
-					reply.setContent(sContent);
-					reply.setPerformative(iPerformative);
-					send(reply);
-				}
-				//else block(10); // Bloquea el comportamiento*/
+	
 			}
 		});
 		
