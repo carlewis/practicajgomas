@@ -12,15 +12,15 @@ Consiste en enviar un agente para atraer la atención del equipo contrario hacia
 
 En primer lugar hay que generar los puntos clave de la estrategia:
 
-* Punto de Ataque del Señuelo
-* Punto Distante del Señuelo
-* Punto de Ataque Principal
+  * Punto de Ataque del Señuelo
+  * Punto Distante del Señuelo
+  * Punto de Ataque Principal
 
 Despues hay que comprobar que existen caminos seguros entre estos puntos:
 
-* Base - Punto de Ataque del Señuelo
-* Base - Punto Distante del Señuelo
-* Punto de Ataque del Señuelo - Punto Distante del Señuelo
-* Base - Punto de Ataque Principal
+  * Base - Punto de Ataque del Señuelo
+  * Base - Punto Distante del Señuelo
+  * Punto de Ataque del Señuelo - Punto Distante del Señuelo
+  * Base - Punto de Ataque Principal
 
 Si todos los caminos son 
