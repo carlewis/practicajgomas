@@ -1,0 +1,9 @@
+#summary Estrategias de Ataque del Equipo
+
+= Introduccion =
+
+El equipo base tiene comportamientos completamente reactivos y no organizados. Tras las primeras pruebas de ataque uno se da cuenta que el equipo enemigo completo acude tras una amenaza asi que la primera estrategia que se me ocurre es el uso de un señuelo. 
+
+== Estrategia del Señuelo ==
+
+=== Valoracion de la Estrategia ===
