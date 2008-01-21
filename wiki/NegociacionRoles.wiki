@@ -3,3 +3,23 @@
 = Introducción =
 
 En cada estrategia agentes del mismo tipo pueden jugar papeles (roles) diferentes dentro del equipo, siendo necesario una estrategia para determinar qué roles hay, y como asignarselos a cada agente.
+
+= Planteamiento =
+
+La negociación de los roles se hará mediante una contienda, es decir, todos los agentes solicitarán cada uno de los roles, hasta que todos estén ocupados. Por ejemplo, para el rol de lider: 
+
+  # Cada usuario envia un mensaje "QUIERO SER EL LIDER" al resto. 
+  # Si el agente que lo recibe no conoce un lider con un número aleatorio entre 0 y 10.
+  # El emisor genera otro aleatorio entre 0 y 10. 
+    * Si es menor envia "TU ERES EL LIDER"
+    * Si es mayor envia "YO SOY EL LIDER"
+  # Los dos agentes pasan a conocer al nuevo lider.
+  # Si el agente receptor ya conoce un lider, y no es él mismo, responde "YA HAY LIDER" y la identificacion del lider. El emisor contactará con el lider si no es él mismo.
+  # Si el agente receptor es el lider responde con un número aleatorio entre 0 y 10. 
+  # Vuelve al paso 3.
+
+Finalmente un solo agente será el lider y será el encargado de informar al resto de agentes. 
+Se repite el algoritmo para cada rol. 
+Puede que haya bastante trasiego de mensajes, estudiar y optimizar si es posible.
+
+= Implementacion = 
