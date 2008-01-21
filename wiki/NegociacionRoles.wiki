@@ -1,0 +1,5 @@
+#summary Estrategia para asignar un rol a cada agente
+
+= Introducción =
+
+En cada estrategia agentes del mismo tipo pueden jugar papeles (roles) diferentes dentro del equipo, siendo necesario una estrategia para determinar qué roles hay, y como asignarselos a cada agente.
