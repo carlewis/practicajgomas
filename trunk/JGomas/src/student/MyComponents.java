@@ -12,7 +12,7 @@ public class MyComponents {
 	 * @author carlos
 	 *
 	 */
-	public enum LeaderMessage { REQUEST, ALREADY_EXISTS, I_WIN, YOU_WIN };
+	public enum LeaderMessage { REQUEST, ALREADY_EXISTS, I_WIN, YOU_WIN, FINAL_LEADER};
 	/**
 	 * 
 	 * @param t: string
@@ -24,11 +24,13 @@ public class MyComponents {
 		if (t.equals("FIELDOPS")) return AgentType.FIELDOPS;
 		return AgentType.SOLDIER;
 	}
+	
 	public static LeaderMessage parseLeaderMessage(String t) {
 		if (t.equals("REQUEST")) return LeaderMessage.REQUEST;
 		if (t.equals("I_WIN")) return LeaderMessage.I_WIN;
 		if (t.equals("YOU_WIN")) return LeaderMessage.YOU_WIN;
 		if (t.equals("ALREADY_EXISTS")) return LeaderMessage.ALREADY_EXISTS;
+		if (t.equals("FINAL_LEADER")) return LeaderMessage.FINAL_LEADER;
 		return LeaderMessage.REQUEST;
 	}
 	
