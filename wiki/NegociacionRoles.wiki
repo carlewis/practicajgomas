@@ -27,3 +27,6 @@ En primer lugar se definen los tipos de mensajes:
 {{{
 public enum LeaderMessage { REQUEST, VALUE, ALREADY_EXISTS, I_WIN, YOU_WIN };
 }}}
+
+Despues hay que definir cuando se comienza el protocolo. Esto no puede suceder inmediatamente despues al lanzamiento del comportamiento de las comunicaciones, ya que es 
+probable que los agentes no hayan entrado en contacto todos con todos. Solución: lanzamos un comportamiento simple en el que esperamos a que todos los agentes estén comunicados, cuando esto ocurra se comienza la negociacion de lider.
