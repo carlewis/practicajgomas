@@ -31,6 +31,5 @@ public enum LeaderMessage { REQUEST, VALUE, ALREADY_EXISTS, I_WIN, YOU_WIN };
 Despues hay que definir *cuando comienza el protocolo*. Esto no puede suceder inmediatamente despues al lanzamiento del comportamiento de las comunicaciones, ya que es 
 probable que los agentes no hayan entrado en contacto todos con todos. Solución: lanzamos un comportamiento simple en el que esperamos a que todos los agentes estén comunicados, cuando esto ocurra se comienza la negociacion de lider.
 
-== Problema == 
-
+* Problema *
 Puesto que el algoritmo se basa en que hay que interactuar con los agentes de uno en uno, es necesario tener una estructura de datos que nos indique con qué agentes ya hemos dialogado. 
