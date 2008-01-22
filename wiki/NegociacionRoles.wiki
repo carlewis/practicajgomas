@@ -36,5 +36,5 @@ probable que los agentes no hayan entrado en contacto todos con todos. Solución
 Puesto que el algoritmo se basa en que hay que interactuar con los agentes de uno en uno, es necesario tener una estructura de datos que nos indique con qué agentes ya hemos dialogado, además de una variable de estado que nos indique si estamos a la espera de la respuesta de uno de los agentes:
 {{{
 protected boolean m_bEsperaRespuesta;
-protected ArrayList<boolean> m_CheckedForLeader;
+protected ArrayList<Boolean> m_CheckedForLeader;
 }}}
