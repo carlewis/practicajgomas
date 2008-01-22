@@ -52,4 +52,7 @@ public class AgentInfo {
 
 * Problema *
 
-Tiene que funcionar con 1 agente
+Otro problema que surge es que si solo hay un soldado con vida, este se tiene que proponer como lider del grupo. Para esto es necesario saber el numero de agentes de tipo soldado que tiene el equipo así que declaramos una variable que mantiene la cuenta de soldados del equipo (sin incluirle a él mismo):
+{{{
+protected int m_iTeamSoldiersCount;
+}}}
