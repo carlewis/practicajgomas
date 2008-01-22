@@ -40,3 +40,18 @@ http://practicajgomas.googlecode.com/files/se%C3%B1uelo.png
 === Implementacion === 
 
 Lo primero que hay que hacer es definir los [NegociacionRoles roles de los agentes]. Una vez definido el agente lider, este se encarga de transmitir el resto de roles. Cada agente tiene que mantener una variable interna con su rol ya que este nos permitirá darle diferentes comportamientos a cada rol.
+
+Además es necesario poder transmitir identidades a través de mensajes, ya que es necesario que el señuelo conozca quienes son sus apoyos, para solicitar los medicamentos y municiones. Esto seguramente se pueda solucionar haciendo uso de la comparacion de las cadenas que describen a los agentes. La función que resulta es la siguiente:
+
+{{{
+private AID ContentToAgent(String s) {
+	StringTokenizer tokens = new StringTokenizer(s);
+	tokens.nextToken(); // Quita el (
+	String sContentAID = tokens.nextToken();
+	sContentAID = sContentAID + tokens.nextToken("))") + "))";
+	for (AgentInfo ai: m_TeamAgents)
+		if (ai.aid.toString().equals(sContentAID))
+			return ai.aid;
+	return getAID();
+}
+}}}
