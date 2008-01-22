@@ -33,8 +33,23 @@ probable que los agentes no hayan entrado en contacto todos con todos. Solución
 
 * Problema *
 
-Puesto que el algoritmo se basa en que hay que interactuar con los agentes de uno en uno, es necesario tener una estructura de datos que nos indique con qué agentes ya hemos dialogado, además de una variable de estado que nos indique si estamos a la espera de la respuesta de uno de los agentes:
+Puesto que el algoritmo se basa en que hay que interactuar con los agentes de uno en uno, es necesario tener una estructura de datos que nos indique con qué agentes ya hemos dialogado, además de una variable de estado que nos indique si estamos a la espera de la respuesta de uno de los agentes. El segundo problema se resuelve con una variable tipo boolean que nos indica si el agente se encuentra esperando una respuesta. Para el primer problema extendemos la estructura de datos de comunicación de los agentes, que pasa a ser una clase con los siguientes campos:
 {{{
+// Espera por una respuesta
 protected boolean m_bWaitAnswer;
-protected ArrayList<Boolean> m_CheckedForLeader;
+...
+public class AgentInfo {
+	public AgentType type;
+	public AID aid;
+	public boolean checked;
+	public AgentInfo(AgentType t, AID a) {
+		type = t;
+		aid = a;
+		checked = false;
+	}
+}
 }}}
+
+* Problema *
+
+Tiene que funcionar con 1 agente
