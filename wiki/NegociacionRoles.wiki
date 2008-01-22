@@ -32,4 +32,5 @@ Despues hay que definir *cuando comienza el protocolo*. Esto no puede suceder in
 probable que los agentes no hayan entrado en contacto todos con todos. Solución: lanzamos un comportamiento simple en el que esperamos a que todos los agentes estén comunicados, cuando esto ocurra se comienza la negociacion de lider.
 
 * Problema *
+
 Puesto que el algoritmo se basa en que hay que interactuar con los agentes de uno en uno, es necesario tener una estructura de datos que nos indique con qué agentes ya hemos dialogado. 
