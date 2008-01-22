@@ -48,7 +48,14 @@ public class MySoldier extends CSoldier {
 	 * Enlaces al resto de agentes para la comunicacion
 	 */
 	protected ArrayList<AgentInfo> m_TeamAgents;
+	/**
+	 * Numero de agentes que tiene el equipo
+	 */
 	protected int m_iTeamSize = Integer.MAX_VALUE;
+	/**
+	 * Numero de soldados que tiene el equipo, excluyendo al propio
+	 */
+	protected int m_iTeamSoldiersCount = 0;
 	/**
 	 * Puja para ser el lider
 	 */
@@ -58,8 +65,7 @@ public class MySoldier extends CSoldier {
 	 */
 	protected boolean m_bExistsLeader = false;
 	protected AID m_TeamLeader = null;
-	protected boolean m_bEsperaRespuesta;
-	protected ArrayList<Boolean> m_CheckedForLeader;
+	protected boolean m_bWaitAnswer;
 	
 	protected void setup() {
 	
@@ -130,7 +136,6 @@ public class MySoldier extends CSoldier {
 			private AgentType ContentsToAgentType(String s) {
 				StringTokenizer tokens = new StringTokenizer(s);
 				tokens.nextToken(); // Quita (
-				//AgentType retValue = (AgentType) Integer.parseInt(tokens.nextToken());
 				return MyComponents.parseAgentType(tokens.nextToken());
 			}
 			private LeaderMessage GetLeaderMessageType(String s) {
@@ -150,42 +155,49 @@ public class MySoldier extends CSoldier {
 				else 
 					return true;
 			}
+			private AID ContentToAgent(String s) {
+				StringTokenizer tokens = new StringTokenizer(s);
+				tokens.nextToken(); // Quita el (
+				String sContentAID = tokens.nextToken();
+				sContentAID = sContentAID + tokens.nextToken("))") + "))";
+				for (AgentInfo ai: m_TeamAgents)
+					if (ai.aid.toString().equals(sContentAID))
+						return ai.aid;
+				return getAID();
+			}
 			public void action() {
-				MessageTemplate template = MessageTemplate.or(
-						MessageTemplate.MatchConversationId("COMM_SUBSCRIPTION"),
-						MessageTemplate.MatchConversationId("LEADER_PROTOCOL"));
+				MessageTemplate template = MessageTemplate.MatchAll();
 				ACLMessage msgLO = receive(template);
 				if (msgLO != null) {
 					if (msgLO.getConversationId() == "COMM_SUBSCRIPTION") {
 						// 
 						AID cSender = msgLO.getSender();
-						System.out.println("Añadiendo agente");
-						m_TeamAgents.add(new AgentInfo(ContentsToAgentType(msgLO.getContent()), cSender));
+						AgentType at = ContentsToAgentType(msgLO.getContent());
+						if (at == AgentType.SOLDIER)
+							m_iTeamSoldiersCount++;
+						m_TeamAgents.add(new AgentInfo(at, cSender));
 					}
 					else if (msgLO.getConversationId() == "LEADER_PROTOCOL") {
 						// TODO: Recepcion mensajes lider
 						LeaderMessage nType = GetLeaderMessageType(msgLO.getContent());
 						if (nType == LeaderMessage.REQUEST) {
-							System.out.println("Llega mensaje REQUEST");
 							ACLMessage msg = msgLO.createReply();
 							// Si no conoce al lider
 							if (!m_bExistsLeader) {
 								if (ContentsToLeader(msgLO.getContent())) {
-									System.out.println("Responde YO");
 									// respondemos I_WIN
 									msg.setContent(" ( " + MyComponents.LeaderMessage.I_WIN + " ) ");
 									m_TeamLeader = getAID();
+									m_bExistsLeader = false;
 								}
 								else {
-									System.out.println("Responde TU");
 									// respondemos YOU_WIN
 									msg.setContent(" ( " + MyComponents.LeaderMessage.YOU_WIN + " ) ");
 									m_TeamLeader = msgLO.getSender();
+									m_bExistsLeader = true;
 								}
-								m_bExistsLeader = true;
 							}
 							else {
-								System.out.println("Responde el lider es otro");
 								// Responde con la identificacion del lider
 								msg.setContent(" ( " + MyComponents.LeaderMessage.ALREADY_EXISTS + " , " + 
 										m_TeamLeader + " ) ");
@@ -197,17 +209,24 @@ public class MySoldier extends CSoldier {
 							// El otro agente es el lider
 							m_bExistsLeader = true;
 							m_TeamLeader = msgLO.getSender();
+							m_bWaitAnswer = false;
 						}
 						else if (nType == LeaderMessage.YOU_WIN) {
-							// Yo soy el lider
-							m_bExistsLeader = true;
+							// No existe un lider que no sea yo -> Sigue comunicando
+							m_bExistsLeader = false;
 							m_TeamLeader = getAID();
+							m_bWaitAnswer = false;
 						}
 						else if (nType == LeaderMessage.ALREADY_EXISTS) {
-							// Hay que contactar con el lider
-							System.out.println("HAY UN LIDER " + msgLO.getContent());
+							// Sigue buscando
+							m_bWaitAnswer = false;
 						}
-						
+						else if (nType == LeaderMessage.FINAL_LEADER) {
+							m_TeamLeader = msgLO.getSender();
+						}
+					}
+					else if (msgLO.getConversationId() == "INFORM") {
+						System.out.println("El medico es " + ContentToAgent(msgLO.getContent()));
 					}
 				}
 	
@@ -217,8 +236,7 @@ public class MySoldier extends CSoldier {
 	}
 
 	/**
-	 * Implementa el protocolo para decidir el lider del equipo
-	 * TODO: Negociacion del lider 
+	 * Implementa el protocolo para decidir el lider del equipo 
 	 */
 	private void NegociateLeaderRole() {
 		addBehaviour(new SimpleBehaviour() {
@@ -227,27 +245,48 @@ public class MySoldier extends CSoldier {
 			public void action() {
 				// Esperamos a que el array de agentes contenga a todos los agentes del equipo
 				if (m_TeamAgents.size() == m_iTeamSize - 1) {
-					System.out.println("Comienza la negociacion del lider");
 					// Agente por agente hasta saber que no soy el lider o terminar con los agentes
 					Iterator<AgentInfo> it = m_TeamAgents.iterator();
-					while (!m_bExistsLeader && it.hasNext()) { // && m_bEsperaRespuesta
+					while (!m_bWaitAnswer && !m_bExistsLeader && it.hasNext()) {
 						AgentInfo ai = it.next();
+						//if (ai.type == MyComponents.AgentType.SOLDIER)
+						//	iSoliderNum++;
 						// Elegimos un agente tipo soldado
-						if (ai.type == MyComponents.AgentType.SOLDIER) {
+						if ((ai.type == MyComponents.AgentType.SOLDIER) && !ai.checked) {
 							// Enviamos un mensaje tipo REQUEST
 							ACLMessage msg = new ACLMessage(ACLMessage.PROPOSE);
 							msg.addReceiver(ai.aid);
 							msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
 							msg.setConversationId("LEADER_PROTOCOL");
 							msg.setContent(" ( " + MyComponents.LeaderMessage.REQUEST + " , " + m_fLeaderBid + " ) ");
-							System.out.println("Enviando Mensaje REQUEST");
 							send(msg);
+							m_bWaitAnswer = true;
+							ai.checked = true;
 						}
 					}
-					m_bDone = true;
+					if (!m_bWaitAnswer) {
+						m_bDone = true;
+					}
 				}
 			}
 			public boolean done() {
+				if ((m_bDone && (m_TeamLeader == getAID())) || 
+					(m_bDone && m_iTeamSoldiersCount == 0)) {
+					m_TeamLeader = getAID();
+					System.out.println(getName() + ": Yo soy el lider");
+					
+					// Avisamos a todos los agentes de quien es el lider final
+					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+					Iterator<AgentInfo> it = m_TeamAgents.iterator();
+					while (it.hasNext()) {
+						AgentInfo ai = it.next();
+						msg.addReceiver(ai.aid);
+					}
+					msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+					msg.setConversationId("LEADER_PROTOCOL");
+					msg.setContent(" ( " + LeaderMessage.FINAL_LEADER + " ) ");
+					send(msg);
+				}
 				return m_bDone;
 			}
 		});
@@ -365,7 +404,9 @@ public class MySoldier extends CSoldier {
 	 * <em> It's very useful to overload this method. </em>
 	 *    
 	 */
-	protected void UpdateTargets() {} 
+	protected void UpdateTargets() {
+		System.out.println("UpdateTargets");
+	} 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -381,7 +422,10 @@ public class MySoldier extends CSoldier {
 	 * @return <tt> FALSE</tt> 
 	 * 
 	 */
-	protected boolean ShouldUpdateTargets() { return false; }  
+	protected boolean ShouldUpdateTargets() { 
+		//return true;
+		return false; 
+	}  
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -542,6 +586,7 @@ public class MySoldier extends CSoldier {
 	 *   
 	 */
 	protected void PerformInjuryAction() {
+		System.out.println("Ah me disparan!");
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	
@@ -630,6 +675,24 @@ public class MySoldier extends CSoldier {
 		} catch (FIPAException e) {
 			
 		}*/
+		if (getAID() == m_TeamLeader) {
+			System.out.println("Look");
+				
+			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+			for (int i = 0; i < m_TeamAgents.size(); i++) {
+				AID agent = m_TeamAgents.get(i).aid; 
+				msg.addReceiver(agent);
+			}
+			AID medic = null;
+			for (int i = 0; i < m_TeamAgents.size(); i++) 
+				if (m_TeamAgents.get(i).type == AgentType.MEDIC) {
+					medic = m_TeamAgents.get(i).aid;
+				}
+			msg.setConversationId("INFORM");
+			msg.setContent(" ( " + medic + " ) ");
+			// TODO
+			send(msg);
+		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
