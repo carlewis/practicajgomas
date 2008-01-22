@@ -110,6 +110,7 @@ public class MyMedic extends CMedic {
 						AID cSender = msgLO.getSender();
 						System.out.println("Leida suscripcion de agente tipo " + 
 								ContentsToAgentType(msgLO.getContent()));
+						cSender.getName();
 						//AgentType nType = ContentsToAgentType(msgLO.getContents());
 					}
 					// else if (msgLO.getConversationId() == "LO QUE SEA") {}
@@ -448,6 +449,7 @@ public class MyMedic extends CMedic {
 	 * @return <tt> TRUE</tt>: enemy found / <tt> FALSE</tt> enemy not found
 	 * 
 	 */
+	@SuppressWarnings("unchecked")
 	protected boolean GetAgentToAim() {
 		
 		if ( m_FOVObjects.isEmpty() ) {

@@ -11,9 +11,12 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
+import student.MyComponents.LeaderMessage;
+import student.MyComponents.AgentType;
 import student.PathFinding.PathFindingSolver;
 
 import es.upv.dsic.gti_ia.jgomas.CSoldier;
@@ -33,8 +36,6 @@ public class MySoldier extends CSoldier {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-
-	
 	/**
 	 * Nombre del servicio de comunicaciones. Depende del equipo del agente
 	 */
@@ -43,6 +44,22 @@ public class MySoldier extends CSoldier {
 	 * Tipo del agente AgentType.SOLDIER
 	 */
 	protected MyComponents.AgentType m_nAgentType;
+	/**
+	 * Enlaces al resto de agentes para la comunicacion
+	 */
+	protected ArrayList<AgentInfo> m_TeamAgents;
+	protected int m_iTeamSize = Integer.MAX_VALUE;
+	/**
+	 * Puja para ser el lider
+	 */
+	protected double m_fLeaderBid;
+	/**
+	 * Tiene conocimiento de un lider
+	 */
+	protected boolean m_bExistsLeader = false;
+	protected AID m_TeamLeader = null;
+	protected boolean m_bEsperaRespuesta;
+	protected ArrayList<Boolean> m_CheckedForLeader;
 	
 	protected void setup() {
 	
@@ -58,14 +75,18 @@ public class MySoldier extends CSoldier {
 			m_sCommunicationsService = "Communications_Allied";
 		}
 		SetUpPriorities();
+		// Puja por ser el lider
+		m_fLeaderBid = Math.random() * 10;
+		// Estructura de datos para las comunicaciones 
+		m_TeamAgents = new ArrayList<AgentInfo>();
 		// Comienza la comunicacion con el resto de agentes
-		StartAgentCommunications();
-	
+		m_iTeamSize = StartAgentCommunications();
+		NegociateLeaderRole();
 	}
 	/**
 	 * Comienza la comunicacion entre el agente y el resto del equipo
 	 */
-	protected void StartAgentCommunications() {
+	protected int StartAgentCommunications() {
 		// Comienza el comportamiento de comunicaciones
 		LaunchCommunicationsBehaviour();
 		try {
@@ -77,127 +98,160 @@ public class MySoldier extends CSoldier {
 			DFAgentDescription[] result = DFService.search(this, dfd);
 			if (result.length > 0) {
 				// Envia un mensaje de suscripcion a cada uno
-				System.out.println("Existen agentes");
 				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
 				for ( int i = 0; i < result.length; i++ ) {
 					AID agent = result[i].getName();
 					// No nos lo enviamos a nosotros mismos
-					if (!agent.equals(getName())) {
-						System.out.println(getName() + " a " + agent.getName());
+					if (!agent.equals(getName())) 
 						msg.addReceiver(agent);
-					}
 				}
 				msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
 				msg.setConversationId("COMM_SUBSCRIPTION");
 				msg.setContent(" ( " + m_nAgentType + " ) ");
 				send(msg);
+				return result.length;
 			}
-			else {
+			else
 				System.out.println("No hay ningun agente");
-			}
 		} catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
+		return 0;
 		
 	}
-	
+	/**
+	 * Lanza un comportamiento que se encarga de mantener la comunicacion con 
+	 * el resto de agentes de su equipo
+	 */
 	private void LaunchCommunicationsBehaviour() {
 		addBehaviour(new CyclicBehaviour() {
 			private static final long serialVersionUID = 1L;
 
-			private MyComponents.AgentType ContentsToAgentType(String s) {
+			private AgentType ContentsToAgentType(String s) {
 				StringTokenizer tokens = new StringTokenizer(s);
 				tokens.nextToken(); // Quita (
 				//AgentType retValue = (AgentType) Integer.parseInt(tokens.nextToken());
 				return MyComponents.parseAgentType(tokens.nextToken());
 			}
+			private LeaderMessage GetLeaderMessageType(String s) {
+				StringTokenizer tokens = new StringTokenizer(s);
+				tokens.nextToken(); // Quita (
+				return MyComponents.parseLeaderMessage(tokens.nextToken());
+			}
+			// Devuelve true si yo soy el lider, falso en otro caso
+			private boolean  ContentsToLeader(String s) {
+				StringTokenizer tokens = new StringTokenizer(s);
+				tokens.nextToken(); // Quita (
+				tokens.nextToken(); // Quita el tipo de mensaje
+				tokens.nextToken(); // Quita ,
+				double fBid = Double.parseDouble(tokens.nextToken());
+				if (fBid > m_fLeaderBid)
+					return false;
+				else 
+					return true;
+			}
 			public void action() {
-				MessageTemplate template = MessageTemplate.MatchAll();
+				MessageTemplate template = MessageTemplate.or(
+						MessageTemplate.MatchConversationId("COMM_SUBSCRIPTION"),
+						MessageTemplate.MatchConversationId("LEADER_PROTOCOL"));
 				ACLMessage msgLO = receive(template);
 				if (msgLO != null) {
 					if (msgLO.getConversationId() == "COMM_SUBSCRIPTION") {
 						// 
 						AID cSender = msgLO.getSender();
-						System.out.println("Leida suscripcion de agente tipo " + 
-								ContentsToAgentType(msgLO.getContent()));
-						//AgentType nType = ContentsToAgentType(msgLO.getContents());
+						System.out.println("Añadiendo agente");
+						m_TeamAgents.add(new AgentInfo(ContentsToAgentType(msgLO.getContent()), cSender));
 					}
-					// else if (msgLO.getConversationId() == "LO QUE SEA") {}
+					else if (msgLO.getConversationId() == "LEADER_PROTOCOL") {
+						// TODO: Recepcion mensajes lider
+						LeaderMessage nType = GetLeaderMessageType(msgLO.getContent());
+						if (nType == LeaderMessage.REQUEST) {
+							System.out.println("Llega mensaje REQUEST");
+							ACLMessage msg = msgLO.createReply();
+							// Si no conoce al lider
+							if (!m_bExistsLeader) {
+								if (ContentsToLeader(msgLO.getContent())) {
+									System.out.println("Responde YO");
+									// respondemos I_WIN
+									msg.setContent(" ( " + MyComponents.LeaderMessage.I_WIN + " ) ");
+									m_TeamLeader = getAID();
+								}
+								else {
+									System.out.println("Responde TU");
+									// respondemos YOU_WIN
+									msg.setContent(" ( " + MyComponents.LeaderMessage.YOU_WIN + " ) ");
+									m_TeamLeader = msgLO.getSender();
+								}
+								m_bExistsLeader = true;
+							}
+							else {
+								System.out.println("Responde el lider es otro");
+								// Responde con la identificacion del lider
+								msg.setContent(" ( " + MyComponents.LeaderMessage.ALREADY_EXISTS + " , " + 
+										m_TeamLeader + " ) ");
+							}
+							msg.setPerformative(ACLMessage.AGREE);
+							send(msg);
+						}
+						else if (nType == LeaderMessage.I_WIN) {
+							// El otro agente es el lider
+							m_bExistsLeader = true;
+							m_TeamLeader = msgLO.getSender();
+						}
+						else if (nType == LeaderMessage.YOU_WIN) {
+							// Yo soy el lider
+							m_bExistsLeader = true;
+							m_TeamLeader = getAID();
+						}
+						else if (nType == LeaderMessage.ALREADY_EXISTS) {
+							// Hay que contactar con el lider
+							System.out.println("HAY UN LIDER " + msgLO.getContent());
+						}
+						
+					}
 				}
 	
 			}
 		});
 		
 	}
-	
-	/**
-	 * 
-	 */
-	private void SuscribeLookout() {
-		try {
-			// Busco los agentes que dan el servicio vigia
-			DFAgentDescription dfd = new DFAgentDescription();
-			ServiceDescription sd = new ServiceDescription();
-			//sd.setType(m_sLookoutService);
-			dfd.addServices(sd);
-			DFAgentDescription[] result = DFService.search(this, dfd);
-			if (result.length > 0) {
-				System.out.println("Existen vigias");
-				// Enviar un mensaje al vigia para que nos envie notificaciones
-				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
-				for ( int i = 0; i < result.length; i++ ) {
-					AID Lookout = result[i].getName();
-					msg.addReceiver(Lookout);
-				}
-				msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
-				msg.setConversationId("LOOK_OUT_SERVICE");
-				msg.setContent(" ( ) ");
-				send(msg);
-			}
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
-	}
-	/**
-	 * Lanza el comportamiento de respuesta al vigia
-	 */
-	private void LaunchLookoutResponseBehaviour() {
-		addBehaviour(new CyclicBehaviour() {
-			/**
-			 * 
-			 */
-			private static final long serialVersionUID = 1L;
 
-			private void ParseContents(String c) {
-				StringTokenizer tokens = new StringTokenizer(c);
-				tokens.nextToken(); // Get "("
-				double x = Double.parseDouble(tokens.nextToken());
-				tokens.nextToken(); // Get ","
-				double y = Double.parseDouble(tokens.nextToken());
-				tokens.nextToken(); // Get ","
-				double z = Double.parseDouble(tokens.nextToken());
-				System.out.println("Mensaje del vigia (" + x + "," + y + "," + z + ")");
-			}
+	/**
+	 * Implementa el protocolo para decidir el lider del equipo
+	 * TODO: Negociacion del lider 
+	 */
+	private void NegociateLeaderRole() {
+		addBehaviour(new SimpleBehaviour() {
+			private static final long serialVersionUID = 1L;
+			private boolean m_bDone = false;
 			public void action() {
-				MessageTemplate template = MessageTemplate.and(
-						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
-						MessageTemplate.MatchConversationId("LOOK_OUT"));
-				int iPerformative;
-				ACLMessage msgLO = receive(template);
-				if ( msgLO != null ) {
-					String sContent = msgLO.getContent();
-					ParseContents(sContent);
-					iPerformative = ACLMessage.AGREE;
-					ACLMessage reply = msgLO.createReply();
-					reply.setContent(sContent);
-					reply.setPerformative(iPerformative);
-					send(reply);
+				// Esperamos a que el array de agentes contenga a todos los agentes del equipo
+				if (m_TeamAgents.size() == m_iTeamSize - 1) {
+					System.out.println("Comienza la negociacion del lider");
+					// Agente por agente hasta saber que no soy el lider o terminar con los agentes
+					Iterator<AgentInfo> it = m_TeamAgents.iterator();
+					while (!m_bExistsLeader && it.hasNext()) { // && m_bEsperaRespuesta
+						AgentInfo ai = it.next();
+						// Elegimos un agente tipo soldado
+						if (ai.type == MyComponents.AgentType.SOLDIER) {
+							// Enviamos un mensaje tipo REQUEST
+							ACLMessage msg = new ACLMessage(ACLMessage.PROPOSE);
+							msg.addReceiver(ai.aid);
+							msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+							msg.setConversationId("LEADER_PROTOCOL");
+							msg.setContent(" ( " + MyComponents.LeaderMessage.REQUEST + " , " + m_fLeaderBid + " ) ");
+							System.out.println("Enviando Mensaje REQUEST");
+							send(msg);
+						}
+					}
+					m_bDone = true;
 				}
-				//else block(10); // Bloquea el comportamiento
+			}
+			public boolean done() {
+				return m_bDone;
 			}
 		});
 	}
-	
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class
 	//
@@ -339,7 +393,9 @@ public class MySoldier extends CSoldier {
 	 * <em> It's very useful to overload this method. </em>
 	 *   
 	 */
-	protected void ObjectivePackTaken() {} // Should we do anything when we take the objective pack? 
+	protected void ObjectivePackTaken() {
+		System.out.println(getName() + " objective pack taken");
+	} // Should we do anything when we take the objective pack? 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -377,7 +433,9 @@ public class MySoldier extends CSoldier {
 	 * <em> It's very useful to overload this method. </em>
 	 *   
 	 */
-	protected void PerformNoAmmoAction() {}
+	protected void PerformNoAmmoAction() {
+		System.out.println(getName() + " out of ammo");
+	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -521,6 +579,7 @@ public class MySoldier extends CSoldier {
 	 * @return <tt> TRUE</tt>: enemy found / <tt> FALSE</tt> enemy not found
 	 * 
 	 */
+	@SuppressWarnings("unchecked")
 	protected boolean GetAgentToAim() {
 		
 		if ( m_FOVObjects.isEmpty() ) {

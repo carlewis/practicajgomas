@@ -16,18 +16,14 @@ import java.util.StringTokenizer;
 
 import student.PathFinding.PathFindingSolver;
 
-import es.upv.dsic.gti_ia.jgomas.CSoldier;
-import es.upv.dsic.gti_ia.jgomas.CPack;
-import es.upv.dsic.gti_ia.jgomas.CSight;
-import es.upv.dsic.gti_ia.jgomas.CTask;
-import es.upv.dsic.gti_ia.jgomas.Vector3D;
+import es.upv.dsic.gti_ia.jgomas.*;
 
 /**
  * 
  * @version 1.0
  * @author carlos
  */
-public class MyFieldOps extends CSoldier {
+public class MyFieldOps extends CFieldOps {
 	
 	/**
 	 * 
@@ -48,7 +44,7 @@ public class MyFieldOps extends CSoldier {
 		AddServiceType("Communications");
 		super.setup();
 		// Definimos el tipo de Agente
-		m_nAgentType = MyComponents.AgentType.SOLDIER;
+		m_nAgentType = MyComponents.AgentType.FIELDOPS;
 		// Definimos el nombre de los servicios
 		if (m_eTeam == TEAM_AXIS) {
 			m_sCommunicationsService = "Communications_Axis";
@@ -119,6 +115,7 @@ public class MyFieldOps extends CSoldier {
 						AID cSender = msgLO.getSender();
 						System.out.println("Leida suscripcion de agente tipo " + 
 								ContentsToAgentType(msgLO.getContent()));
+						cSender.getName();
 						//AgentType nType = ContentsToAgentType(msgLO.getContents());
 					}
 					// else if (msgLO.getConversationId() == "LO QUE SEA") {}
@@ -129,74 +126,7 @@ public class MyFieldOps extends CSoldier {
 		
 	}
 	
-	/**
-	 * 
-	 */
-	private void SuscribeLookout() {
-		try {
-			// Busco los agentes que dan el servicio vigia
-			DFAgentDescription dfd = new DFAgentDescription();
-			ServiceDescription sd = new ServiceDescription();
-			//sd.setType(m_sLookoutService);
-			dfd.addServices(sd);
-			DFAgentDescription[] result = DFService.search(this, dfd);
-			if (result.length > 0) {
-				System.out.println("Existen vigias");
-				// Enviar un mensaje al vigia para que nos envie notificaciones
-				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
-				for ( int i = 0; i < result.length; i++ ) {
-					AID Lookout = result[i].getName();
-					msg.addReceiver(Lookout);
-				}
-				msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
-				msg.setConversationId("LOOK_OUT_SERVICE");
-				msg.setContent(" ( ) ");
-				send(msg);
-			}
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
-	}
-	/**
-	 * Lanza el comportamiento de respuesta al vigia
-	 */
-	private void LaunchLookoutResponseBehaviour() {
-		addBehaviour(new CyclicBehaviour() {
-			/**
-			 * 
-			 */
-			private static final long serialVersionUID = 1L;
-
-			private void ParseContents(String c) {
-				StringTokenizer tokens = new StringTokenizer(c);
-				tokens.nextToken(); // Get "("
-				double x = Double.parseDouble(tokens.nextToken());
-				tokens.nextToken(); // Get ","
-				double y = Double.parseDouble(tokens.nextToken());
-				tokens.nextToken(); // Get ","
-				double z = Double.parseDouble(tokens.nextToken());
-				System.out.println("Mensaje del vigia (" + x + "," + y + "," + z + ")");
-			}
-			public void action() {
-				MessageTemplate template = MessageTemplate.and(
-						MessageTemplate.MatchPerformative(ACLMessage.INFORM),
-						MessageTemplate.MatchConversationId("LOOK_OUT"));
-				int iPerformative;
-				ACLMessage msgLO = receive(template);
-				if ( msgLO != null ) {
-					String sContent = msgLO.getContent();
-					ParseContents(sContent);
-					iPerformative = ACLMessage.AGREE;
-					ACLMessage reply = msgLO.createReply();
-					reply.setContent(sContent);
-					reply.setPerformative(iPerformative);
-					send(reply);
-				}
-				//else block(10); // Bloquea el comportamiento
-			}
-		});
-	}
-	
+		
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class
 	//
@@ -520,6 +450,7 @@ public class MyFieldOps extends CSoldier {
 	 * @return <tt> TRUE</tt>: enemy found / <tt> FALSE</tt> enemy not found
 	 * 
 	 */
+	@SuppressWarnings("unchecked")
 	protected boolean GetAgentToAim() {
 		
 		if ( m_FOVObjects.isEmpty() ) {
