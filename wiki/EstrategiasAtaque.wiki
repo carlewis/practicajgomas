@@ -39,4 +39,4 @@ http://practicajgomas.googlecode.com/files/se%C3%B1uelo.png
 
 === Implementacion === 
 
-Lo primero que hay que hacer es definir los [NegociacionRoles roles de los agentes].
+Lo primero que hay que hacer es definir los [NegociacionRoles roles de los agentes]. Una vez definido el agente lider, este se encarga de transmitir el resto de roles. Cada agente tiene que mantener una variable interna con su rol ya que este nos permitirá darle diferentes comportamientos a cada rol.
