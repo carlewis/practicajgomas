@@ -92,8 +92,7 @@ public class MySoldier extends CSoldier {
 		// Comienza la comunicacion con el resto de agentes
 		m_iTeamSize = StartAgentCommunications();
 		NegociateLeaderRole();
-		System.out.println("Vamos a imprimir los limites");
-		System.out.println("Armas " + m_Threshold.GetAmmo());
+		SetThresholdValues();
 	}
 	/**
 	 * Comienza la comunicacion entre el agente y el resto del equipo
@@ -231,8 +230,11 @@ public class MySoldier extends CSoldier {
 							m_TeamLeader = msgLO.getSender();
 						}
 					}
+					else if (msgLO.getConversationId() == "ROLE_PROTOCOL") {
+						System.out.println(getName() + "msg de protocolo de roles" + msgLO.getContent());
+					}
 					else if (msgLO.getConversationId() == "INFORM") {
-						System.out.println("El medico es " + ContentToAgent(msgLO.getContent()));
+						//System.out.println("El medico es " + ContentToAgent(msgLO.getContent()));
 					}
 				}
 	
@@ -292,10 +294,68 @@ public class MySoldier extends CSoldier {
 					msg.setConversationId("LEADER_PROTOCOL");
 					msg.setContent(" ( " + LeaderMessage.FINAL_LEADER + " ) ");
 					send(msg);
+					AssignBaitRoles();
 				}
 				return m_bDone;
 			}
 		});
+	}
+	protected void AssignBaitRoles() {
+		System.out.println("Como soy el lider reparto papeles");
+		// Enviamos un mensaje a cada agente con su rol
+		// Señuelo (SOLDIER), medico del señuelo (MEDIC), 
+		// fieldop del señuelo (FIELDOP), agente defensa (SOLDIER)
+		boolean bBait = false, bBaitMedic = false, bBaitFieldOp = false,
+			bBaitSoldier = false;
+		ACLMessage msgBait = new ACLMessage(ACLMessage.INFORM);
+		msgBait.setConversationId("ROLE_PROTOCOL");
+		msgBait.setContent(" ( " + MyComponents.BaitRole.BAIT + " ) ");
+		
+		ACLMessage msgBMedic = new ACLMessage(ACLMessage.INFORM);
+		ACLMessage msgBFieldOp = new ACLMessage(ACLMessage.INFORM);
+		ACLMessage msgBSoldier = new ACLMessage(ACLMessage.INFORM);
+		ACLMessage msgOther = new ACLMessage(ACLMessage.INFORM);
+		
+		// Ahora recorremos la lista de agentes
+		Iterator<AgentInfo> it = m_TeamAgents.iterator();
+		while (it.hasNext()) {
+			AgentInfo ai = it.next();
+			// Todavia no hay un señuelo
+			if (!bBait && (ai.type == AgentType.SOLDIER)) {
+				msgBait.addReceiver(ai.aid);
+				bBait = true;
+				continue;
+			}
+			if (!bBaitMedic && (ai.type == AgentType.MEDIC)) {
+				msgBMedic.addReceiver(ai.aid);
+				bBaitMedic = true;
+				continue;
+			}
+			if (!bBaitFieldOp && (ai.type == AgentType.FIELDOPS)) {
+				msgBFieldOp.addReceiver(ai.aid);
+				bBaitFieldOp = true;
+				continue;
+			}
+			if (!bBaitSoldier && (ai.type == AgentType.MEDIC)) {
+				msgBSoldier.addReceiver(ai.aid);
+				bBaitSoldier = true;
+				continue;
+			}
+			// Resto
+			msgOther.addReceiver(ai.aid);
+		}
+
+		send(msgBait);
+		send(msgBMedic);
+		send(msgBFieldOp);
+		send(msgBSoldier);
+		send(msgOther);
+		System.out.println("hecho");
+	}
+	protected void SetThresholdValues() {
+		//if (Soy el Señuelo)
+		//	m_Threshold.SetAmmo(10);
+		//m_Threshold.SetAmmo
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class

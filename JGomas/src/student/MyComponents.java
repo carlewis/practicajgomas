@@ -24,7 +24,7 @@ public class MyComponents {
 	 * BAIT_SOLDIER: Soldado que cubre al señuelo en la retirada<br>
 	 * TEAM_SOLDIER: Resto de miembros del equipo<br>
 	 */
-	public enum BaitRole { BAIT, BAIT_MEDIC, BAIT_FIELDOP, BAIT_SOLDIER, TEAM_SOLDIER};
+	public enum BaitRole { UNCERTAIN, BAIT, BAIT_MEDIC, BAIT_FIELDOP, BAIT_SOLDIER, TEAM_SOLDIER};
 	/**
 	 * 
 	 * @param t: string
