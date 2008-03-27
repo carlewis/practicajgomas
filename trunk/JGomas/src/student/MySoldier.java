@@ -66,6 +66,10 @@ public class MySoldier extends CSoldier {
 	protected boolean m_bExistsLeader = false;
 	protected AID m_TeamLeader = null;
 	protected boolean m_bWaitAnswer;
+	/**
+	 * Rol dentro de la estrategia del señuelo
+	 */
+	protected MyComponents.BaitRole m_nAgentRole;
 	
 	protected void setup() {
 	
@@ -88,6 +92,8 @@ public class MySoldier extends CSoldier {
 		// Comienza la comunicacion con el resto de agentes
 		m_iTeamSize = StartAgentCommunications();
 		NegociateLeaderRole();
+		System.out.println("Vamos a imprimir los limites");
+		System.out.println("Armas " + m_Threshold.GetAmmo());
 	}
 	/**
 	 * Comienza la comunicacion entre el agente y el resto del equipo
@@ -676,7 +682,7 @@ public class MySoldier extends CSoldier {
 			
 		}*/
 		if (getAID() == m_TeamLeader) {
-			System.out.println("Look");
+			//System.out.println("Look");
 				
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 			for (int i = 0; i < m_TeamAgents.size(); i++) {
