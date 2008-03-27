@@ -17,9 +17,7 @@ La negociación de los roles se hará mediante una contienda por ser el lider, e
   # Si el agente receptor ya conoce un lider, y no es él mismo, responde "YA HAY LIDER" y la identificacion del lider. El emisor contactará con el lider si no es él mismo.
   # Vuelve al paso 3.
 
-Finalmente un solo agente será el lider y será el encargado de informar al resto de agentes. 
-Se repite el algoritmo para cada rol. 
-Puede que haya bastante trasiego de mensajes, estudiar y optimizar si es posible.
+Finalmente un solo agente será el lider y será el encargado de informar al resto de agentes. Despues de informar al resto de agentes se encarga de repartir los roles del resto de agentes del grupo. De esta forma se mejora el rendimiento en el aspecto del número de mensajes intercambiados.
 
 = Implementacion = 
 
