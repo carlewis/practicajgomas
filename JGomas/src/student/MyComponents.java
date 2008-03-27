@@ -5,14 +5,26 @@ public class MyComponents {
 
 	/**
 	 * Tipos de Agentes
+	 * (SOLDIER, MEDIC, FIELDOPS)
 	 */
 	public enum AgentType { SOLDIER, MEDIC, FIELDOPS };
 	/**
 	 * 
 	 * @author carlos
-	 *
+	 * 
+	 * Tipos de mensajes dentro del protocolo de eleccion de lider del grupo
 	 */
 	public enum LeaderMessage { REQUEST, ALREADY_EXISTS, I_WIN, YOU_WIN, FINAL_LEADER};
+	/**
+	 * Roles posibles dentro de la estrategia del Señuelo
+	 * <br>
+	 * BAIT: Señuelo<br>
+	 * BAIT_MEDIC: Medico que acompaña al señuelo<br>
+	 * BAIT_FIELDOP: FieldOp que acompaña al señuelo<br>
+	 * BAIT_SOLDIER: Soldado que cubre al señuelo en la retirada<br>
+	 * TEAM_SOLDIER: Resto de miembros del equipo<br>
+	 */
+	public enum BaitRole { BAIT, BAIT_MEDIC, BAIT_FIELDOP, BAIT_SOLDIER, TEAM_SOLDIER};
 	/**
 	 * 
 	 * @param t: string
