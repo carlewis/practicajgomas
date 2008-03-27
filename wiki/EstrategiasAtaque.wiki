@@ -46,7 +46,9 @@ Además es necesario poder transmitir identidades a través de mensajes, ya que 
 La variable de cada agente que define su rol es la siguiente:
 
 {{{
-
+public enum BaitRole { BAIT, BAIT_MEDIC, BAIT_FIELDOP, BAIT_SOLDIER, TEAM_SOLDIER};
+...
+protected MyComponents.BaitRole m_nAgentRole;
 }}}
 
 Por otro lado, para poder enviar el AID de un agente en un mensaje, se puede hacer uso de la comparacion de las cadenas que describen a los agentes. La función que resulta es la siguiente:
