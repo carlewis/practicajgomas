@@ -14,6 +14,7 @@ import jade.lang.acl.MessageTemplate;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
+import student.MyComponents.BaitRole;
 import student.PathFinding.PathFindingSolver;
 
 import es.upv.dsic.gti_ia.jgomas.*;
@@ -38,6 +39,10 @@ public class MyFieldOps extends CFieldOps {
 	 * Tipo del agente AgentType.SOLDIER
 	 */
 	protected MyComponents.AgentType m_nAgentType;
+	/**
+	 * Rol dentro de la estrategia del señuelo
+	 */
+	protected MyComponents.BaitRole m_nAgentRole;
 	
 	protected void setup() {
 	
@@ -106,6 +111,11 @@ public class MyFieldOps extends CFieldOps {
 				//AgentType retValue = (AgentType) Integer.parseInt(tokens.nextToken());
 				return MyComponents.parseAgentType(tokens.nextToken());
 			}
+			private BaitRole ContentsToBaitRole(String s) {
+				StringTokenizer tokens = new StringTokenizer(s);
+				tokens.nextToken(); // Quita (
+				return MyComponents.parseBaitRole(tokens.nextToken());
+			}
 			public void action() {
 				MessageTemplate template = MessageTemplate.MatchAll();
 				ACLMessage msgLO = receive(template);
@@ -117,6 +127,11 @@ public class MyFieldOps extends CFieldOps {
 								ContentsToAgentType(msgLO.getContent()));
 						cSender.getName();
 						//AgentType nType = ContentsToAgentType(msgLO.getContents());
+					}
+					else if (msgLO.getConversationId() == "ROLE_PROTOCOL") {
+						m_nAgentRole = ContentsToBaitRole(msgLO.getContent());
+						if (ContentsToBaitRole(msgLO.getContent()) == BaitRole.BAIT_FIELDOP)
+							System.out.println(getName() + " yo soy el que lleva municion al puteado");	
 					}
 					// else if (msgLO.getConversationId() == "LO QUE SEA") {}
 				}

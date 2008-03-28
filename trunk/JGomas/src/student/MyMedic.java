@@ -14,6 +14,8 @@ import jade.lang.acl.MessageTemplate;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
+import student.MyComponents.BaitRole;
+
 import es.upv.dsic.gti_ia.jgomas.CMedic;
 import es.upv.dsic.gti_ia.jgomas.CPack;
 import es.upv.dsic.gti_ia.jgomas.CSight;
@@ -34,7 +36,10 @@ public class MyMedic extends CMedic {
 	 * Tipo del agente AgentType.SOLDIER
 	 */
 	protected MyComponents.AgentType m_nAgentType;
-
+	/**
+	 * Rol dentro de la estrategia del señuelo
+	 */
+	protected MyComponents.BaitRole m_nAgentRole;
 
 	protected void setup() {
 		
@@ -101,6 +106,11 @@ public class MyMedic extends CMedic {
 				tokens.nextToken(); // Quita (
 				return MyComponents.parseAgentType(tokens.nextToken());
 			}
+			private MyComponents.BaitRole ContentsToBaitRole(String s) {
+				StringTokenizer tokens = new StringTokenizer(s);
+				tokens.nextToken(); // Quita (
+				return MyComponents.parseBaitRole(tokens.nextToken());
+			}
 			public void action() {
 				MessageTemplate template = MessageTemplate.MatchAll();
 				ACLMessage msgLO = receive(template);
@@ -112,6 +122,13 @@ public class MyMedic extends CMedic {
 								ContentsToAgentType(msgLO.getContent()));
 						cSender.getName();
 						//AgentType nType = ContentsToAgentType(msgLO.getContents());
+					}
+					else if (msgLO.getConversationId() == "ROLE_PROTOCOL") {
+						m_nAgentRole = ContentsToBaitRole(msgLO.getContent());
+						if (ContentsToBaitRole(msgLO.getContent()) == BaitRole.BAIT_MEDIC) {
+							// TODO Caracteristicas propias del medico del señuelo
+							System.out.println(getName() + " yo soy el medico del puteado");
+						}
 					}
 					// else if (msgLO.getConversationId() == "LO QUE SEA") {}
 				}

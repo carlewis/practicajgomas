@@ -15,10 +15,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
+import student.MyComponents.BaitRole;
 import student.MyComponents.LeaderMessage;
 import student.MyComponents.AgentType;
-import student.PathFinding.PathFindingSolver;
-
 import es.upv.dsic.gti_ia.jgomas.CSoldier;
 import es.upv.dsic.gti_ia.jgomas.CPack;
 import es.upv.dsic.gti_ia.jgomas.CSight;
@@ -30,6 +29,7 @@ import es.upv.dsic.gti_ia.jgomas.Vector3D;
  * @version 1.0
  * @author carlos
  */
+// TODO estrategias de defensa, cancelar estrategia de ataque...
 public class MySoldier extends CSoldier {
 	
 	/**
@@ -64,12 +64,21 @@ public class MySoldier extends CSoldier {
 	 * Tiene conocimiento de un lider
 	 */
 	protected boolean m_bExistsLeader = false;
+	/**
+	 * AID del lider del grupo
+	 */
 	protected AID m_TeamLeader = null;
+	protected boolean m_bIsLeader;
 	protected boolean m_bWaitAnswer;
 	/**
 	 * Rol dentro de la estrategia del señuelo
 	 */
 	protected MyComponents.BaitRole m_nAgentRole;
+	/**
+	 * 
+	 */
+	protected enum LeaderState { DEFINE_POINTS, WAIT_TRANSMITION };
+	protected LeaderState m_nLeaderState;
 	
 	protected void setup() {
 	
@@ -92,7 +101,7 @@ public class MySoldier extends CSoldier {
 		// Comienza la comunicacion con el resto de agentes
 		m_iTeamSize = StartAgentCommunications();
 		NegociateLeaderRole();
-		SetThresholdValues();
+		
 	}
 	/**
 	 * Comienza la comunicacion entre el agente y el resto del equipo
@@ -149,7 +158,7 @@ public class MySoldier extends CSoldier {
 				return MyComponents.parseLeaderMessage(tokens.nextToken());
 			}
 			// Devuelve true si yo soy el lider, falso en otro caso
-			private boolean  ContentsToLeader(String s) {
+			private boolean ContentsToLeader(String s) {
 				StringTokenizer tokens = new StringTokenizer(s);
 				tokens.nextToken(); // Quita (
 				tokens.nextToken(); // Quita el tipo de mensaje
@@ -159,6 +168,11 @@ public class MySoldier extends CSoldier {
 					return false;
 				else 
 					return true;
+			}
+			private MyComponents.BaitRole ContentsToBaitRole(String s) {
+				StringTokenizer tokens = new StringTokenizer(s);
+				tokens.nextToken(); // Quita (
+				return MyComponents.parseBaitRole(tokens.nextToken());
 			}
 			private AID ContentToAgent(String s) {
 				StringTokenizer tokens = new StringTokenizer(s);
@@ -231,7 +245,13 @@ public class MySoldier extends CSoldier {
 						}
 					}
 					else if (msgLO.getConversationId() == "ROLE_PROTOCOL") {
-						System.out.println(getName() + "msg de protocolo de roles" + msgLO.getContent());
+						// Hay que ver el papel que nos ha dado el lider
+						m_nAgentRole = ContentsToBaitRole(msgLO.getContent());
+						if (m_nAgentRole == BaitRole.BAIT)
+							System.out.println(getName() + " yo soy el puteado");
+						else if (m_nAgentRole == BaitRole.BAIT_SOLDIER)
+							System.out.println(getName() + " yo soy el que respalda al puteado");
+						SetThresholdValues();
 					}
 					else if (msgLO.getConversationId() == "INFORM") {
 						//System.out.println("El medico es " + ContentToAgent(msgLO.getContent()));
@@ -278,9 +298,12 @@ public class MySoldier extends CSoldier {
 				}
 			}
 			public boolean done() {
+				m_bIsLeader = false;
 				if ((m_bDone && (m_TeamLeader == getAID())) || 
 					(m_bDone && m_iTeamSoldiersCount == 0)) {
 					m_TeamLeader = getAID();
+					m_bIsLeader = true;
+					m_nLeaderState = LeaderState.DEFINE_POINTS;
 					System.out.println(getName() + ": Yo soy el lider");
 					
 					// Avisamos a todos los agentes de quien es el lider final
@@ -294,14 +317,15 @@ public class MySoldier extends CSoldier {
 					msg.setConversationId("LEADER_PROTOCOL");
 					msg.setContent(" ( " + LeaderMessage.FINAL_LEADER + " ) ");
 					send(msg);
+					// Una vez decidido el lider del grupo se asignan los roles
 					AssignBaitRoles();
 				}
 				return m_bDone;
 			}
 		});
 	}
+	
 	protected void AssignBaitRoles() {
-		System.out.println("Como soy el lider reparto papeles");
 		// Enviamos un mensaje a cada agente con su rol
 		// Señuelo (SOLDIER), medico del señuelo (MEDIC), 
 		// fieldop del señuelo (FIELDOP), agente defensa (SOLDIER)
@@ -312,10 +336,20 @@ public class MySoldier extends CSoldier {
 		msgBait.setContent(" ( " + MyComponents.BaitRole.BAIT + " ) ");
 		
 		ACLMessage msgBMedic = new ACLMessage(ACLMessage.INFORM);
-		ACLMessage msgBFieldOp = new ACLMessage(ACLMessage.INFORM);
-		ACLMessage msgBSoldier = new ACLMessage(ACLMessage.INFORM);
-		ACLMessage msgOther = new ACLMessage(ACLMessage.INFORM);
+		msgBMedic.setConversationId("ROLE_PROTOCOL");
+		msgBMedic.setContent(" ( " + MyComponents.BaitRole.BAIT_MEDIC + " ) ");
 		
+		ACLMessage msgBFieldOp = new ACLMessage(ACLMessage.INFORM);
+		msgBFieldOp.setConversationId("ROLE_PROTOCOL");
+		msgBFieldOp.setContent(" ( " + MyComponents.BaitRole.BAIT_FIELDOP + " ) ");
+		
+		ACLMessage msgBSoldier = new ACLMessage(ACLMessage.INFORM);
+		msgBSoldier.setConversationId("ROLE_PROTOCOL");
+		msgBSoldier.setContent(" ( " + MyComponents.BaitRole.BAIT_SOLDIER + " ) ");
+		
+		ACLMessage msgOther = new ACLMessage(ACLMessage.INFORM);
+		msgOther.setConversationId("ROLE_PROTOCOL");
+		msgOther.setContent(" ( " + MyComponents.BaitRole.TEAM_SOLDIER + " ) ");
 		// Ahora recorremos la lista de agentes
 		Iterator<AgentInfo> it = m_TeamAgents.iterator();
 		while (it.hasNext()) {
@@ -324,6 +358,11 @@ public class MySoldier extends CSoldier {
 			if (!bBait && (ai.type == AgentType.SOLDIER)) {
 				msgBait.addReceiver(ai.aid);
 				bBait = true;
+				continue;
+			}
+			if (!bBaitSoldier && (ai.type == AgentType.SOLDIER)) {
+				msgBSoldier.addReceiver(ai.aid);
+				bBaitSoldier = true;
 				continue;
 			}
 			if (!bBaitMedic && (ai.type == AgentType.MEDIC)) {
@@ -350,11 +389,10 @@ public class MySoldier extends CSoldier {
 		send(msgBFieldOp);
 		send(msgBSoldier);
 		send(msgOther);
-		System.out.println("hecho");
 	}
 	protected void SetThresholdValues() {
-		//if (Soy el Señuelo)
-		//	m_Threshold.SetAmmo(10);
+		if (m_nAgentRole == BaitRole.BAIT)
+			m_Threshold.SetAmmo(10);
 		//m_Threshold.SetAmmo
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -584,12 +622,12 @@ public class MySoldier extends CSoldier {
 	 * 
 	 */
 	protected boolean GeneratePath() {
-		if ((m_AStarPath = PathFindingSolver.FindPathToTarget(m_Map, m_Movement)) != null) { 
+		/*if ((m_AStarPath = PathFindingSolver.FindPathToTarget(m_Map, m_Movement)) != null) { 
 			String startPos;
 			startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
 			AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
 			return true;
-		}
+		}*/
 		return false;
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -741,9 +779,22 @@ public class MySoldier extends CSoldier {
 		} catch (FIPAException e) {
 			
 		}*/
-		if (getAID() == m_TeamLeader) {
+		if (m_bIsLeader) {
 			//System.out.println("Look");
+			switch (m_nLeaderState) {
+			case DEFINE_POINTS:
+				// TODO Decidir los puntos de control de la estrategia
+				System.out.println("puntos");
+				// posicion del objetivo
+				Vector3D cGoal = m_Movement.getDestination();
 				
+				System.out.println("la bandera esta en " + cGoal.x + ", " + cGoal.y);
+				// posicion de la base?
+				// decidir los puntos comprobando que existen rutas factibles entre ellos
+				//m_nLeaderState = LeaderState.WAIT_TRANSMITION;
+				
+			}
+			
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 			for (int i = 0; i < m_TeamAgents.size(); i++) {
 				AID agent = m_TeamAgents.get(i).aid; 
@@ -756,7 +807,6 @@ public class MySoldier extends CSoldier {
 				}
 			msg.setConversationId("INFORM");
 			msg.setContent(" ( " + medic + " ) ");
-			// TODO
 			send(msg);
 		}
 	}

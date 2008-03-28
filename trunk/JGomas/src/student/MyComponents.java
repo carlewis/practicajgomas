@@ -46,6 +46,15 @@ public class MyComponents {
 		return LeaderMessage.REQUEST;
 	}
 	
+	public static BaitRole parseBaitRole(String t) {
+		if (t.equals("BAIT")) return BaitRole.BAIT;
+		if (t.equals("BAIT_MEDIC")) return BaitRole.BAIT_MEDIC;
+		if (t.equals("BAIT_FIELDOP")) return BaitRole.BAIT_FIELDOP;
+		if (t.equals("BAIT_SOLDIER")) return BaitRole.BAIT_SOLDIER;
+		if (t.equals("TEAM_SOLDIER")) return BaitRole.TEAM_SOLDIER;
+		return BaitRole.UNCERTAIN;
+	}
+	
 }
 
 
