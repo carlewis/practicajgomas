@@ -18,6 +18,7 @@ import java.util.StringTokenizer;
 import student.MyComponents.BaitRole;
 import student.MyComponents.LeaderMessage;
 import student.MyComponents.AgentType;
+import student.PathFinding.PathFindingSolver;
 import es.upv.dsic.gti_ia.jgomas.CSoldier;
 import es.upv.dsic.gti_ia.jgomas.CPack;
 import es.upv.dsic.gti_ia.jgomas.CSight;
@@ -779,6 +780,7 @@ public class MySoldier extends CSoldier {
 		} catch (FIPAException e) {
 			
 		}*/
+		final double BAIT_RADIOUS = -10.0;
 		if (m_bIsLeader) {
 			//System.out.println("Look");
 			switch (m_nLeaderState) {
@@ -788,10 +790,30 @@ public class MySoldier extends CSoldier {
 				// posicion del objetivo
 				Vector3D cGoal = m_Movement.getDestination();
 				
-				System.out.println("la bandera esta en " + cGoal.x + ", " + cGoal.y);
+				System.out.println("la bandera esta en " + cGoal.x + ", " + cGoal.z);
 				// posicion de la base?
-				// decidir los puntos comprobando que existen rutas factibles entre ellos
-				//m_nLeaderState = LeaderState.WAIT_TRANSMITION;
+				System.out.println("la base en " + m_Movement.getPosition().x + ", " + m_Movement.getPosition().z);
+				// punto de ataque del señuelo: se encuentra en la recta entre la base y 
+				// la bandera
+				double x1 = m_Movement.getPosition().x, 
+					x0 = cGoal.x, 
+					z1 = m_Movement.getPosition().z, 
+					z0 = cGoal.z;
+				double m = (x1 - x0) / (z1 - z0);
+				System.out.println(m);
+				double z = BAIT_RADIOUS / (java.lang.Math.sqrt(1 + m * m)) + z0;
+				double x = m * (z - z0) + x0;
+				System.out.println(x + " " + z);
+				// TODO Poner este codigo en el señuelo
+				// Esto tiene que ocurrir ya en el señuelo
+				Vector3D[] path = PathFindingSolver.FindPath(m_Map, x1, z1, x, z);
+				System.out.println("El path tiene longitud " + path.length);
+				// Ejecucion de la tarea
+				String startPos;
+				startPos = " ( " + path[0].x + " , 0.0 , " + path[0].z + " ) ";
+				AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
+				// TODO Generar el punto de ataque sorpresa y probar el walking path
+				m_nLeaderState = LeaderState.WAIT_TRANSMITION;
 				
 			}
 			
