@@ -1,0 +1,5 @@
+#summary One-sentence Medios para definir los puntos de la estrategia del señuelo
+
+= Definicion de Puntos =
+
+Para definir los puntos de la estrategia hay que tener en cuenta varios factores. Primero la distancia a la que queremos que se acerquen los agentes antes de comenzar el ataque, despues hay que tener en cuenta desde donde queremos que sea el ataque ya que es probable que no todas las direcciones. Para esto se buscan las direcciones en linea recta desde las que no hay obstáculos
