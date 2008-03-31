@@ -67,4 +67,4 @@ private AID ContentToAgent(String s) {
 }
 }}}
 
-[DefinicionPuntos Definicion de Puntos]
+Una vez determinados los roles de cada uno de los agentes es necesario que el lider decida la estrategia a seguir. [DefinicionPuntos Definicion de Puntos]
