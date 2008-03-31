@@ -396,6 +396,84 @@ public class MySoldier extends CSoldier {
 			m_Threshold.SetAmmo(10);
 		//m_Threshold.SetAmmo
 	}
+	
+	protected void GenerateBaitPoints() {
+		final double BAIT_RADIOUS = -24.0;
+		// TODO Decidir los puntos de control de la estrategia
+		System.out.println("puntos");
+		// posicion del objetivo
+		Vector3D cGoal = m_Movement.getDestination();
+		
+		System.out.println("la bandera esta en " + cGoal.x + ", " + cGoal.z);
+		// posicion de la base?
+		System.out.println("la base en " + m_Movement.getPosition().x + ", " + m_Movement.getPosition().z);
+		// punto de ataque del señuelo: se encuentra en la recta entre la base y 
+		// la bandera
+		Vector3D cAtackPoints[] = new Vector3D[8];
+		for (int i = 0; i < 0; i++)
+			cAtackPoints[i] = new Vector3D();
+		cAtackPoints[0].x = cGoal.x - BAIT_RADIOUS;
+		cAtackPoints[0].y = cGoal.y - BAIT_RADIOUS;
+		cAtackPoints[1].x = cGoal.x - BAIT_RADIOUS;
+		cAtackPoints[1].y = cGoal.y;
+		cAtackPoints[2].x = cGoal.x - BAIT_RADIOUS;
+		cAtackPoints[2].y = cGoal.y + BAIT_RADIOUS;
+		cAtackPoints[3].x = cGoal.x;
+		cAtackPoints[3].y = cGoal.y - BAIT_RADIOUS;
+		cAtackPoints[4].x = cGoal.x;
+		cAtackPoints[4].y = cGoal.y + BAIT_RADIOUS;
+		cAtackPoints[5].x = cGoal.x + BAIT_RADIOUS;
+		cAtackPoints[5].y = cGoal.y - BAIT_RADIOUS;
+		cAtackPoints[6].x = cGoal.x + BAIT_RADIOUS;
+		cAtackPoints[6].y = cGoal.y;
+		cAtackPoints[7].x = cGoal.x + BAIT_RADIOUS;
+		cAtackPoints[7].y = cGoal.y + BAIT_RADIOUS;
+		
+		double x1 = m_Movement.getPosition().x, 
+			x0 = cGoal.x, 
+			z1 = m_Movement.getPosition().z, 
+			z0 = cGoal.z;
+		double m = (x1 - x0) / (z1 - z0);
+		System.out.println(m);
+		// El punto podría no ser transitable (pared)
+		double z = BAIT_RADIOUS / (java.lang.Math.sqrt(1 + m * m)) + z0;
+		double x = m * (z - z0) + x0;
+		System.out.println(x + " " + z);
+		// TODO Poner este codigo en el señuelo
+		Vector3D[] path = PathFindingSolver.FindPath(m_Map, x1, z1, x, z);
+		System.out.println("El path tiene longitud " + path.length);
+		CheckBaitPathToAttack(path);
+		// Generar un punto de ataque principal
+		
+		// Ejecucion de la tarea
+		String startPos;
+		startPos = " ( " + path[0].x + " , 0.0 , " + path[0].z + " ) ";
+		AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
+
+	}
+	/**
+	 * Comprueba la calidad del camino del señuelo hacia su punto de destino
+	 * En caso necesario lo modifica.
+	 */
+	protected void CheckBaitPathToAttack(Vector3D[] path) {
+		if (path != null) {
+			for (int i = 0; i < path.length; i++) {
+				
+			}
+		}
+		else {
+			// No hay un camino!
+			System.out.println("No hay un camino!");
+		}
+		
+	}
+	/**
+	 * Comprueba la calidad del camino desde el punto del señuelo al de retirada
+	 * En caso necesario modifica el punto de retirada
+	 */
+	protected void CheckBaitPathToWithdraw(Vector3D path) {
+		
+	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class
 	//
@@ -780,39 +858,13 @@ public class MySoldier extends CSoldier {
 		} catch (FIPAException e) {
 			
 		}*/
-		final double BAIT_RADIOUS = -10.0;
+		
 		if (m_bIsLeader) {
 			//System.out.println("Look");
+			// TODO Definir todos los estados del lider
 			switch (m_nLeaderState) {
 			case DEFINE_POINTS:
-				// TODO Decidir los puntos de control de la estrategia
-				System.out.println("puntos");
-				// posicion del objetivo
-				Vector3D cGoal = m_Movement.getDestination();
-				
-				System.out.println("la bandera esta en " + cGoal.x + ", " + cGoal.z);
-				// posicion de la base?
-				System.out.println("la base en " + m_Movement.getPosition().x + ", " + m_Movement.getPosition().z);
-				// punto de ataque del señuelo: se encuentra en la recta entre la base y 
-				// la bandera
-				double x1 = m_Movement.getPosition().x, 
-					x0 = cGoal.x, 
-					z1 = m_Movement.getPosition().z, 
-					z0 = cGoal.z;
-				double m = (x1 - x0) / (z1 - z0);
-				System.out.println(m);
-				double z = BAIT_RADIOUS / (java.lang.Math.sqrt(1 + m * m)) + z0;
-				double x = m * (z - z0) + x0;
-				System.out.println(x + " " + z);
-				// TODO Poner este codigo en el señuelo
-				// Esto tiene que ocurrir ya en el señuelo
-				Vector3D[] path = PathFindingSolver.FindPath(m_Map, x1, z1, x, z);
-				System.out.println("El path tiene longitud " + path.length);
-				// Ejecucion de la tarea
-				String startPos;
-				startPos = " ( " + path[0].x + " , 0.0 , " + path[0].z + " ) ";
-				AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
-				// TODO Generar el punto de ataque sorpresa y probar el walking path
+				GenerateBaitPoints();
 				m_nLeaderState = LeaderState.WAIT_TRANSMITION;
 				
 			}
