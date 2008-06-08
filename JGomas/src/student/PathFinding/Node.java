@@ -1,5 +1,6 @@
 package student.PathFinding;
 
+import student.BaitLib;
 import es.upv.dsic.gti_ia.jgomas.CTerrainMap;
 
 public class Node {
@@ -90,6 +91,27 @@ public class Node {
 		m_Hijos = new Node[4];
 		for (int i = 0; i < 4; i++) {
 			if (m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i])) {
+				m_Hijos[i] = new Node();
+				m_Hijos[i].setPosX(getPosX() + incPosX[i]);
+				m_Hijos[i].setPosZ(getPosZ() + incPosZ[i]);
+				m_Hijos[i].setFCost(getFCost() + LIN_INC_COST);
+				m_Hijos[i].setHCost(calcHCost(m_Hijos[i].getPosX(), m_Hijos[i].getPosZ()));
+				m_Hijos[i].setCost(m_Hijos[i].getFCost() + m_Hijos[i].getHCost());
+				m_Hijos[i].setPadre(this);
+			}
+		}
+		return m_Hijos;
+	}
+	
+	public Node[] getBaitChildren() {
+		int incPosX[] = {+1, 0, -1, 0};
+		int incPosZ[] = {0, +1, 0, -1};
+		m_Hijos = new Node[4];
+		for (int i = 0; i < 4; i++) {
+			if (m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i]) &&
+				!BaitLib.IsBattlePoint(
+						(double) ((getPosX() + incPosX[i]) * 8), 
+						(double) ((getPosZ() + incPosZ[i]) * 8))) {
 				m_Hijos[i] = new Node();
 				m_Hijos[i].setPosX(getPosX() + incPosX[i]);
 				m_Hijos[i].setPosZ(getPosZ() + incPosZ[i]);

@@ -5,12 +5,16 @@ import es.upv.dsic.gti_ia.jgomas.Vector3D;
 import es.upv.dsic.gti_ia.jgomas.CMobile;
 
 public class PathFindingSolver {
+	public static CTerrainMap m_cMap;
 	
-	
+	public static void setMap(CTerrainMap map) {
+		m_cMap = map;
+	}
 	/**
 	 * Implementa la busqueda de una ruta hasta la bandera mediante un algoritmo A*
 	 */
 	public static Vector3D[] FindPathToTarget(CTerrainMap map, CMobile movement) {
+		m_cMap = map;
 		Node.setMap(map);
 		Node.setTarget(movement.getDestination().x / 8, movement.getDestination().z / 8);
 			
@@ -82,9 +86,8 @@ public class PathFindingSolver {
 	/**
 	 * Implementa la busqueda de una ruta desde una localización hasta un destino
 	 */
-	public static Vector3D[] FindPath(CTerrainMap map, 
-			double startX, double startZ, double targetX, double targetZ) {
-		Node.setMap(map);
+	public static Vector3D[] FindBaitPath(double startX, double startZ, double targetX, double targetZ) {
+		Node.setMap(m_cMap);
 		Node.setTarget(targetX / 8, targetZ / 8);
 		
 		// Generamos el nodo de partida
@@ -115,7 +118,7 @@ public class PathFindingSolver {
 			ClosedList.insert(act);
 			
 			// Calculamos sus trayectorias descendientes
-			Node trajectories[] = act.getChildren();
+			Node trajectories[] = act.getBaitChildren();
 			
 			// Insertamos la trayectorias descendientes en la lista abierta de
 			// forma ordenada
@@ -145,6 +148,27 @@ public class PathFindingSolver {
 			it = it.getPadre();
 		}
 		return Path;
+	}
+	/**
+	 * Comprueba que se puede ir en linea recta entre los puntos origen y destino
+	 */
+	public static boolean CheckDirectPath(Vector3D origin, Vector3D goal) {
+		System.out.println("..... CheckDirectPath .....");
+		System.out.println("Chequeando (" + origin.x + ", " + origin.z + ")->(" + goal.x + ", " + goal.z + ")");
+		double dIncX = goal.x - origin.x;
+		double dIncZ = goal.z - origin.z;
+		long steps = Math.round(Math.abs(dIncX) + Math.abs(dIncZ));
+		dIncX = dIncX / steps;
+		dIncZ = dIncZ / steps;
+
+		for (int i = 0; i < steps; i++) {
+			int posX = (int) Math.round((origin.x + dIncX * i) / 8);
+			int posZ = (int) Math.round((origin.z + dIncZ * i) / 8);
+			if (!m_cMap.CanWalk(posX, posZ))
+				return false;
+		}
+		System.out.println("...........................");
+		return true;
 	}
 
 }
