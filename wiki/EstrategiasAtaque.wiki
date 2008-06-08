@@ -67,4 +67,4 @@ private AID ContentToAgent(String s) {
 }
 }}}
 
-Una vez determinados los roles de cada uno de los agentes es necesario que el lider decida la estrategia a seguir. [DefinicionPuntos Definicion de Puntos]
+Una vez determinados los roles de cada uno de los agentes el líder decide la estrategia a seguir. En primer lugar, para la estrategia del señuelo es necesario definir los puntos de ataque mecionados antes. Se profundiza más en la siguiente sección: [DefinicionPuntos Definición de Puntos]
