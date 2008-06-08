@@ -76,9 +76,10 @@ public class MySoldier extends CSoldier {
 	 */
 	protected MyComponents.BaitRole m_nAgentRole;
 	/**
-	 * 
+	 * Estados del lider para la estrategia del señuelo
 	 */
-	protected enum LeaderState { DEFINE_POINTS, WAIT_TRANSMITION };
+	protected enum LeaderState { DEFINE_POINTS, MOVE_TEAM, SYNCHRONIZE_POSITIONS, 
+		BAIT_ATTACK, SYNCHRONIZE_ATTACK, GOAL_ATTACK };
 	protected LeaderState m_nLeaderState;
 	
 	protected void setup() {
@@ -325,7 +326,10 @@ public class MySoldier extends CSoldier {
 			}
 		});
 	}
-	
+	/**
+	 * Asigna los roles de la estrategia de ataque del señuelo.
+	 * Ejecuta el lider del equipo
+	 */
 	protected void AssignBaitRoles() {
 		// Enviamos un mensaje a cada agente con su rol
 		// Señuelo (SOLDIER), medico del señuelo (MEDIC), 
@@ -391,12 +395,18 @@ public class MySoldier extends CSoldier {
 		send(msgBSoldier);
 		send(msgOther);
 	}
+	/**
+	 * Asigna los umbrales dependiendo del tipo de papel que juega dentro de la estrategia
+	 */
 	protected void SetThresholdValues() {
 		if (m_nAgentRole == BaitRole.BAIT)
 			m_Threshold.SetAmmo(10);
 		//m_Threshold.SetAmmo
 	}
-	
+	/**
+	 * Genera los puntos claves dentro de la estrategia de ataque del señuelo
+	 * Utilizado por el Lider del grupo
+	 */
 	protected void GenerateBaitPoints() {
 		final double BAIT_RADIOUS = -24.0;
 		// TODO Decidir los puntos de control de la estrategia
@@ -412,6 +422,8 @@ public class MySoldier extends CSoldier {
 		Vector3D cAtackPoints[] = new Vector3D[8];
 		for (int i = 0; i < 0; i++)
 			cAtackPoints[i] = new Vector3D();
+		double dGoalXIncs[] = {-BAIT_RADIOUS, -BAIT_RADIOUS, -BAIT_RADIOUS, -BAIT_RADIOUS};		
+		double dGoalYIncs[] = {-BAIT_RADIOUS, 0, BAIT_RADIOUS, -BAIT_RADIOUS};
 		cAtackPoints[0].x = cGoal.x - BAIT_RADIOUS;
 		cAtackPoints[0].y = cGoal.y - BAIT_RADIOUS;
 		cAtackPoints[1].x = cGoal.x - BAIT_RADIOUS;
@@ -428,6 +440,10 @@ public class MySoldier extends CSoldier {
 		cAtackPoints[6].y = cGoal.y;
 		cAtackPoints[7].x = cGoal.x + BAIT_RADIOUS;
 		cAtackPoints[7].y = cGoal.y + BAIT_RADIOUS;
+		
+		for (int i = 0; i < 8; i++) {
+			//for (int ix = 0; )
+		}
 		
 		double x1 = m_Movement.getPosition().x, 
 			x0 = cGoal.x, 
@@ -865,7 +881,7 @@ public class MySoldier extends CSoldier {
 			switch (m_nLeaderState) {
 			case DEFINE_POINTS:
 				GenerateBaitPoints();
-				m_nLeaderState = LeaderState.WAIT_TRANSMITION;
+				m_nLeaderState = LeaderState.MOVE_TEAM;
 				
 			}
 			
