@@ -82,7 +82,7 @@ public class Node {
 		m_fFCost = 0;
 		m_fHCost = calcHCost(m_iPosX, m_iPosZ);
 		m_fTotalCost = m_fHCost;
-		System.out.println("El coste del nodo inicial es " + m_fTotalCost);
+		//System.out.println("El coste del nodo inicial es " + m_fTotalCost);
 	}
 	
 	public Node[] getChildren() {
