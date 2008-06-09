@@ -1,7 +1,6 @@
 package student;
 
 import student.PathFinding.PathFindingSolver;
-import es.upv.dsic.gti_ia.jgomas.CBasicTroop;
 import es.upv.dsic.gti_ia.jgomas.Vector3D;
 import java.util.Vector;
 
@@ -60,6 +59,11 @@ public class BaitLib {
 		}
 		GetSecondQualityPoints(bValidPoints, cAttackPoints);
 		ShowPoints();
+		System.out.println("Todos los puntos:");
+		for (int i = 0; i < 8; i++)
+			System.out.print("(" + cAttackPoints[i].x + "," + cAttackPoints[i].z + ")  ");
+		System.out.println("");
+		
 		// Buscamos las rutas entre la base y los puntos seleccionados en los 
 		// puntos de primera categoria
 		for (int i = 0; i < cFirstQualityPoints.size(); i += 2) {
@@ -132,8 +136,8 @@ public class BaitLib {
 		System.out.println("");
 		System.out.print("Puntos de segunda categoria: ");
 		for (int i = 0; i < cSecondQualityPoints.size(); i += 2) {
-			System.out.print("(" + cSecondQualityPoints.get(i).x + ","+ cSecondQualityPoints.get(i).x + ")-(" +
-					cSecondQualityPoints.get(i+1).x + "," + cSecondQualityPoints.get(i+1).x + ")  ");
+			System.out.print("(" + cSecondQualityPoints.get(i).x + ","+ cSecondQualityPoints.get(i).z + ")-(" +
+					cSecondQualityPoints.get(i+1).x + "," + cSecondQualityPoints.get(i+1).z + ")  ");
 		}
 		System.out.println("");
 	}
@@ -175,10 +179,10 @@ public class BaitLib {
 		}
 	}
 	
-	private static void CheckBaitPathToAttack(Vector3D[] cPath) {
+	/*private static void CheckBaitPathToAttack(Vector3D[] cPath) {
 		
 		
-	}
+	}*/
 	/**
 	 * Indica si el punto seleccionado como parámetro se encuentra dentro del cuadrado
 	 * que rodea la bandera
