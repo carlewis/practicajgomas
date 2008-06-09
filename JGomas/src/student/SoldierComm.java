@@ -6,6 +6,7 @@ import jade.lang.acl.MessageTemplate;
 import java.util.StringTokenizer;
 
 import student.MyComponents.AgentType;
+import student.MyComponents.BaitCommand;
 import student.MyComponents.BaitRole;
 import student.MyComponents.LeaderMessage;
 
@@ -40,8 +41,14 @@ public class SoldierComm extends Communication {
 	}
 	
 	private void ExecuteCommand(String s) {
+		// Se separa el comando y los contenidos
 		System.out.println("ejecutar comando " + s);
-		// MySoldier.this
+		if (ContentsToCommand(s) == BaitCommand.GOTO) {
+			// Sacamos la direccion del mensaje
+			// Se llama al metodo que sea del objeto m_cSoldier
+			// TODO El metodo lanza una tarea AddTask para ir al sitio. 	
+		}
+		//m_cSoldier.
 	}
 	/** 
 	 * Metodo principal del comportamiento 
