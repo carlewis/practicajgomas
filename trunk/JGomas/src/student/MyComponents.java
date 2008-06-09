@@ -27,6 +27,10 @@ public class MyComponents {
 	public enum BaitRole { UNCERTAIN, BAIT, BAIT_MEDIC, BAIT_FIELDOP, BAIT_SOLDIER, TEAM_SOLDIER};
 	/**
 	 * 
+	 */
+	public enum BaitCommand { GOTO };
+	/**
+	 * 
 	 * @param t: string
 	 * @return AgentType
 	 */
@@ -53,6 +57,11 @@ public class MyComponents {
 		if (t.equals("BAIT_SOLDIER")) return BaitRole.BAIT_SOLDIER;
 		if (t.equals("TEAM_SOLDIER")) return BaitRole.TEAM_SOLDIER;
 		return BaitRole.UNCERTAIN;
+	}
+	
+	public static BaitCommand parseBaitCommand(String t) {
+		if (t.equals("GOTO")) return BaitCommand.GOTO;
+		return BaitCommand.GOTO;
 	}
 	
 }

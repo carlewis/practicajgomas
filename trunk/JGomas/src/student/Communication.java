@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import student.MyComponents.AgentType;
+import student.MyComponents.BaitCommand;
+import student.MyComponents.BaitRole;
 import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
 
@@ -16,7 +18,7 @@ public abstract class Communication extends CyclicBehaviour {
 		return MyComponents.parseAgentType(tokens.nextToken());
 	}
 	
-	protected MyComponents.BaitRole ContentsToBaitRole(String s) {
+	protected BaitRole ContentsToBaitRole(String s) {
 		StringTokenizer tokens = new StringTokenizer(s);
 		tokens.nextToken(); // Quita (
 		return MyComponents.parseBaitRole(tokens.nextToken());
@@ -32,5 +34,11 @@ public abstract class Communication extends CyclicBehaviour {
 				return ai.aid;
 		return null;
 	}
-
+	
+	protected BaitCommand ContentsToCommand(String s) {
+		StringTokenizer tokens = new StringTokenizer(s);
+		tokens.nextToken(); // Quita el (
+		String sContentCommand = tokens.nextToken();
+		return MyComponents.parseBaitCommand(sContentCommand);
+	}
 }
