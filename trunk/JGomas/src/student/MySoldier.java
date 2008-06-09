@@ -78,10 +78,16 @@ public class MySoldier extends CSoldier {
 	/**
 	 * Estados del lider para la estrategia del señuelo
 	 */
-	protected enum LeaderState { DEFINE_POINTS, MOVE_TEAM, SYNCHRONIZE_POSITIONS, 
+	protected enum LeaderState { NO_STATE, DEFINE_POINTS, MOVE_TEAM, SYNCHRONIZE_POSITIONS, 
 		BAIT_ATTACK, SYNCHRONIZE_ATTACK, GOAL_ATTACK };
-	protected LeaderState m_nLeaderState;
-	
+	protected LeaderState m_nLeaderState = LeaderState.NO_STATE;
+	/** Estados del señuelo */
+	protected enum BaitState { NO_STATE, WAIT_POINT, MOVING, ATTACK, WITHDRAW };
+	/** Estado actual del señuelo */
+	protected BaitState m_nBaitState = BaitState.NO_STATE;
+	/**
+	 * setup method
+	 */
 	protected void setup() {
 	
 		AddServiceType("Communications");
@@ -186,6 +192,10 @@ public class MySoldier extends CSoldier {
 						return ai.aid;
 				return getAID();
 			}
+			private void ExecuteCommand(String s) {
+				System.out.println("ejecutar comando " + s);
+				// MySoldier.this
+			}
 			public void action() {
 				MessageTemplate template = MessageTemplate.MatchAll();
 				ACLMessage msgLO = receive(template);
@@ -257,6 +267,9 @@ public class MySoldier extends CSoldier {
 					}
 					else if (msgLO.getConversationId() == "INFORM") {
 						//System.out.println("El medico es " + ContentToAgent(msgLO.getContent()));
+					}
+					else if (msgLO.getConversationId() == "COMMAND") {
+						ExecuteCommand(msgLO.getContent());
 					}
 				}
 	
@@ -363,6 +376,7 @@ public class MySoldier extends CSoldier {
 			if (!bBait && (ai.type == AgentType.SOLDIER)) {
 				msgBait.addReceiver(ai.aid);
 				bBait = true;
+				ai.role = BaitRole.BAIT;
 				continue;
 			}
 			if (!bBaitSoldier && (ai.type == AgentType.SOLDIER)) {
@@ -404,32 +418,32 @@ public class MySoldier extends CSoldier {
 		//m_Threshold.SetAmmo
 	}
 	
-	protected void GenerateBaitPoints() {
-		
-
-	}
-	/**
-	 * Comprueba la calidad del camino del señuelo hacia su punto de destino
-	 * En caso necesario lo modifica.
-	 */
-	protected void CheckBaitPathToAttack(Vector3D[] path) {
-		if (path != null) {
-			for (int i = 0; i < path.length; i++) {
-				
-			}
-		}
-		else {
-			// No hay un camino!
-			System.out.println("No hay un camino!");
-		}
-		
-	}
 	/**
 	 * Comprueba la calidad del camino desde el punto del señuelo al de retirada
 	 * En caso necesario modifica el punto de retirada
 	 */
 	protected void CheckBaitPathToWithdraw(Vector3D path) {
 		
+	}
+	/**
+	 * Envia a los diferentes agentes el comando de movimiento a determinados puntos
+	 */
+	protected void SendCommandMovements() {
+		// TODO 
+		ACLMessage msgBaitPoint = new ACLMessage(ACLMessage.INFORM);
+		
+		//ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+		// Selecciona al señuelo
+		for (int i = 0; i < m_TeamAgents.size(); i++) {
+			if (m_TeamAgents.get(i).role == BaitRole.BAIT) {
+				msgBaitPoint.addReceiver(m_TeamAgents.get(i).aid);
+			} // else if ...
+			
+		}
+		msgBaitPoint.setConversationId("COMMAND");
+		Vector3D cBaitPoint = BaitLib.getBaitAttackPoint();
+		msgBaitPoint.setContent(" ( GOTO , " + cBaitPoint.x + " , " + cBaitPoint.z + " ) ");
+		send(msgBaitPoint);
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class
@@ -818,16 +832,33 @@ public class MySoldier extends CSoldier {
 		
 		if (m_bIsLeader) {
 			//System.out.println("Look");
-			// TODO Definir todos los estados del lider
 			switch (m_nLeaderState) {
 			case DEFINE_POINTS:
 				//GenerateBaitPoints();
 				PathFindingSolver.setMap(m_Map);
 				BaitLib.GenerateBaitPoints(m_Movement.getDestination(), m_Movement.getPosition());
 				m_nLeaderState = LeaderState.MOVE_TEAM;
+				break;
+			case MOVE_TEAM:
+				// TODO Enviar orden de movimiento a todos
+				SendCommandMovements();
+				m_nLeaderState = LeaderState.SYNCHRONIZE_POSITIONS;
+				break;
+			case SYNCHRONIZE_POSITIONS: 
+				// Esperar a recibir mensajes de que todos estan posicionados
+				break;
+			case BAIT_ATTACK:
+				// Orenar ataque del señuelo
 				
+				break;
+			case SYNCHRONIZE_ATTACK:
+				// Esperar mensaje de alerta del señuelo
+				break;
+			case GOAL_ATTACK:
+				// Enviar orden de ataque al equipo principal
+				break;
 			}
-			
+/*			
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 			for (int i = 0; i < m_TeamAgents.size(); i++) {
 				AID agent = m_TeamAgents.get(i).aid; 
@@ -841,6 +872,7 @@ public class MySoldier extends CSoldier {
 			msg.setConversationId("INFORM");
 			msg.setContent(" ( " + medic + " ) ");
 			send(msg);
+*/
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////

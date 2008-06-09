@@ -84,7 +84,15 @@ public class PathFindingSolver {
 		return Path;
 	}
 	/**
-	 * Implementa la busqueda de una ruta desde una localización hasta un destino
+	 * Implementa la busqueda de una ruta desde una localización hasta un destino,
+	 * teniendo en cuenta que las rutas no deben pasar por las coordenadas próximas 
+	 * a la bandera.
+	 * @param startX: coordenada X del origen
+	 * @param startZ: coordenada Z del origen
+	 * @param targetX: coordenada X del destino
+	 * @param targetZ: coordenada Z del origen
+	 * @return Un array de coordenadas Vector3D que forman el camino, si existe. null 
+	 * en otro caso
 	 */
 	public static Vector3D[] FindBaitPath(double startX, double startZ, double targetX, double targetZ) {
 		Node.setMap(m_cMap);
@@ -149,12 +157,15 @@ public class PathFindingSolver {
 		}
 		return Path;
 	}
+	
 	/**
 	 * Comprueba que se puede ir en linea recta entre los puntos origen y destino
+	 * @param origin
+	 * @param goal
+	 * @return true si es posible llegar en linea recta, false en otro caso
 	 */
 	public static boolean CheckDirectPath(Vector3D origin, Vector3D goal) {
-		System.out.println("..... CheckDirectPath .....");
-		System.out.println("Chequeando (" + origin.x + ", " + origin.z + ")->(" + goal.x + ", " + goal.z + ")");
+		System.out.print("Chequeando (" + origin.x + ", " + origin.z + ")->(" + goal.x + ", " + goal.z + ")...");
 		double dIncX = goal.x - origin.x;
 		double dIncZ = goal.z - origin.z;
 		long steps = Math.round(Math.abs(dIncX) + Math.abs(dIncZ));
@@ -164,10 +175,12 @@ public class PathFindingSolver {
 		for (int i = 0; i < steps; i++) {
 			int posX = (int) Math.round((origin.x + dIncX * i) / 8);
 			int posZ = (int) Math.round((origin.z + dIncZ * i) / 8);
-			if (!m_cMap.CanWalk(posX, posZ))
+			if (!m_cMap.CanWalk(posX, posZ)) {
+				System.out.println("no");
 				return false;
+			}
 		}
-		System.out.println("...........................");
+		System.out.println("si");
 		return true;
 	}
 
