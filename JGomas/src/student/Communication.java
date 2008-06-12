@@ -3,6 +3,8 @@ package student;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
+import es.upv.dsic.gti_ia.jgomas.Vector3D;
+
 import student.MyComponents.AgentType;
 import student.MyComponents.BaitCommand;
 import student.MyComponents.BaitRole;
@@ -40,5 +42,19 @@ public abstract class Communication extends CyclicBehaviour {
 		tokens.nextToken(); // Quita el (
 		String sContentCommand = tokens.nextToken();
 		return MyComponents.parseBaitCommand(sContentCommand);
+	}
+	
+	protected Vector3D ContentsToCommandPoint(String s) {
+		StringTokenizer tokens = new StringTokenizer(s);
+		tokens.nextToken(); // Quita el (
+		tokens.nextToken(); // Quita el comando
+		tokens.nextToken(); // Quita la ,
+		double x, y, z;
+		x = Double.parseDouble(tokens.nextToken());
+		tokens.nextToken();
+		y = Double.parseDouble(tokens.nextToken());
+		tokens.nextToken();
+		z = Double.parseDouble(tokens.nextToken());
+		return new Vector3D(x, y, z);
 	}
 }

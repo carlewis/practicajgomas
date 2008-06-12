@@ -5,6 +5,8 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import java.util.StringTokenizer;
 
+import es.upv.dsic.gti_ia.jgomas.Vector3D;
+
 import student.MyComponents.AgentType;
 import student.MyComponents.BaitCommand;
 import student.MyComponents.BaitRole;
@@ -45,7 +47,9 @@ public class SoldierComm extends Communication {
 		System.out.println("ejecutar comando " + s);
 		if (ContentsToCommand(s) == BaitCommand.GOTO) {
 			// Sacamos la direccion del mensaje
+			Vector3D point = ContentsToCommandPoint(s);
 			// Se llama al metodo que sea del objeto m_cSoldier
+			m_cSoldier.AddTaskGoto(point);
 			// TODO El metodo lanza una tarea AddTask para ir al sitio. 	
 		}
 		//m_cSoldier.

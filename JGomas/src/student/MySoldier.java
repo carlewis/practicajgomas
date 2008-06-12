@@ -77,7 +77,7 @@ public class MySoldier extends CSoldier {
 		BAIT_ATTACK, SYNCHRONIZE_ATTACK, GOAL_ATTACK };
 	protected LeaderState m_nLeaderState = LeaderState.NO_STATE;
 	/** Estados del señuelo */
-	protected enum BaitState { NO_STATE, WAIT_POINT, MOVING, ATTACK, WITHDRAW };
+	protected enum BaitState { NO_STATE, WAIT_POINT, MOVING, WAIT_ATTACK, ATTACK, WITHDRAW };
 	/** Estado actual del señuelo */
 	protected BaitState m_nBaitState = BaitState.NO_STATE;
 	/**
@@ -343,8 +343,24 @@ public class MySoldier extends CSoldier {
 		}
 		msgBaitPoint.setConversationId("COMMAND");
 		Vector3D cBaitPoint = BaitLib.getBaitAttackPoint();
-		msgBaitPoint.setContent(" ( GOTO , " + cBaitPoint.x + " , " + cBaitPoint.z + " ) ");
+		msgBaitPoint.setContent(" ( GOTO , " + cBaitPoint.x + " , 0.0 , " + cBaitPoint.z + " ) ");
 		send(msgBaitPoint);
+	}
+	
+	/**
+	 * 
+	 */
+	public void AddTaskGoto(Vector3D point) {
+		// TODO
+		m_AStarPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
+				point.x, point.z);
+		String startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
+		m_iAStarPathIndex = 0;
+		System.out.print(" ( " + m_AStarPath[0].x + " , " + m_AStarPath[0].z + " )->"); 
+		System.out.println(" ( " + m_AStarPath[m_AStarPath.length - 1].x + " , " + m_AStarPath[m_AStarPath.length - 1].z + " )"); 
+		AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
+		if (m_nAgentRole == BaitRole.BAIT)
+			m_nBaitState = BaitState.MOVING;
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class
@@ -460,7 +476,7 @@ public class MySoldier extends CSoldier {
 	 *    
 	 */
 	protected void UpdateTargets() {
-		System.out.println("UpdateTargets");
+		//System.out.println("UpdateTargets");
 	} 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -478,7 +494,8 @@ public class MySoldier extends CSoldier {
 	 * 
 	 */
 	protected boolean ShouldUpdateTargets() { 
-		//return true;
+		if ((m_nAgentRole == BaitRole.BAIT) && (m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE))
+			return true;
 		return false; 
 	}  
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -681,7 +698,6 @@ public class MySoldier extends CSoldier {
 	 */
 	@SuppressWarnings("unchecked")
 	protected boolean GetAgentToAim() {
-		
 		if ( m_FOVObjects.isEmpty() ) {
 			m_AimedAgent = null;
 			return false;
@@ -700,6 +716,8 @@ public class MySoldier extends CSoldier {
 				continue;
 			
 			m_AimedAgent = s;
+			
+			if (m_nAgentRole != BaitRole.BAIT)
 			return true; 
 		}
 		m_AimedAgent = null;
@@ -775,6 +793,12 @@ public class MySoldier extends CSoldier {
 			send(msg);
 */
 		}
+		
+		if ((m_nAgentRole == BaitRole.BAIT) && (m_AStarPath != null)) {
+			System.out.println("->" + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority() + "    " + 
+					m_Movement.getPosition().x + " " + m_Movement.getPosition().z + "     "
+					+ m_AStarPath[m_iAStarPathIndex].x + " " + m_AStarPath[m_iAStarPathIndex].z);
+		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -807,7 +831,22 @@ public class MySoldier extends CSoldier {
 			else
 				System.out.println(getLocalName()+ ": Medic cannot leave Medic Packs");
 			break;
-			
+		
+		case CTask.TASK_WALKING_PATH:
+			System.out.println("targetreached TASK_WALKING_PATH " + m_AStarPath.length + " " + m_iAStarPathIndex);
+			if (m_iAStarPathIndex < m_AStarPath.length - 1) {
+				m_iAStarPathIndex++;
+				String startPos = " ( " + m_AStarPath[m_iAStarPathIndex].x + " , 0.0 , " + m_AStarPath[m_iAStarPathIndex].z + " ) ";
+				AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, _CurrentTask.getPriority());
+			} // ya llegamos al final del camino
+			else {
+				if (m_nAgentRole == BaitRole.BAIT) {
+					// envio un mensaje de sincronizacion al lider.
+					// TODO el ataque empezará cuando todos estén posicionados 
+				}
+			}
+			//super.PerformTargetReached(_CurrentTask);
+			break;
 		default:
 			super.PerformTargetReached(_CurrentTask);
 			break;
