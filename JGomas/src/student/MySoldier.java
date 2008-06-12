@@ -80,6 +80,9 @@ public class MySoldier extends CSoldier {
 	protected enum BaitState { NO_STATE, WAIT_POINT, MOVING, WAIT_ATTACK, ATTACK, WITHDRAW };
 	/** Estado actual del señuelo */
 	protected BaitState m_nBaitState = BaitState.NO_STATE;
+	/** */
+	protected boolean m_bBaitPrepared = false;
+	protected boolean m_bBaitFieldOpPrepared = false;
 	/**
 	 * setup method
 	 */
@@ -346,6 +349,16 @@ public class MySoldier extends CSoldier {
 		msgBaitPoint.setContent(" ( GOTO , " + cBaitPoint.x + " , 0.0 , " + cBaitPoint.z + " ) ");
 		send(msgBaitPoint);
 	}
+	/**
+	 * 
+	 */
+	protected void SendReadyMsgToLeader() {
+			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+			msg.addReceiver(m_TeamLeader);
+			msg.setConversationId("INFORM");
+			msg.setContent(" ( READY ) ");
+			send(msg);
+	}
 	
 	/**
 	 * 
@@ -361,6 +374,20 @@ public class MySoldier extends CSoldier {
 		AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
 		if (m_nAgentRole == BaitRole.BAIT)
 			m_nBaitState = BaitState.MOVING;
+	}
+	/**
+	 * 
+	 */
+	public void SetAgentPrepared(AID _aid) {
+		for (int i = 0; i < m_TeamAgents.size(); i++) {
+			if (m_TeamAgents.get(i).aid.equals(_aid)) {
+				if (m_TeamAgents.get(i).role == BaitRole.BAIT) {
+					m_bBaitPrepared = true;
+				}
+				else if (m_TeamAgents.get(i).role == BaitRole.BAIT_FIELDOP)
+					m_bBaitFieldOpPrepared = true;
+			}
+		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class
@@ -765,6 +792,12 @@ public class MySoldier extends CSoldier {
 				break;
 			case SYNCHRONIZE_POSITIONS: 
 				// Esperar a recibir mensajes de que todos estan posicionados
+				// Mensaje del señuelo
+				System.out.println("lider en estado synchronize_positions");
+				if (m_bBaitPrepared) { // && m_bBaitMedicPrepared && ...
+					System.out.println("al ataque");
+					m_nLeaderState = LeaderState.BAIT_ATTACK;
+				}
 				break;
 			case BAIT_ATTACK:
 				// Orenar ataque del señuelo
@@ -795,9 +828,9 @@ public class MySoldier extends CSoldier {
 		}
 		
 		if ((m_nAgentRole == BaitRole.BAIT) && (m_AStarPath != null)) {
-			System.out.println("->" + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority() + "    " + 
+/*			System.out.println("->" + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority() + "    " + 
 					m_Movement.getPosition().x + " " + m_Movement.getPosition().z + "     "
-					+ m_AStarPath[m_iAStarPathIndex].x + " " + m_AStarPath[m_iAStarPathIndex].z);
+					+ m_AStarPath[m_iAStarPathIndex].x + " " + m_AStarPath[m_iAStarPathIndex].z);*/
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -842,7 +875,7 @@ public class MySoldier extends CSoldier {
 			else {
 				if (m_nAgentRole == BaitRole.BAIT) {
 					// envio un mensaje de sincronizacion al lider.
-					// TODO el ataque empezará cuando todos estén posicionados 
+					SendReadyMsgToLeader();
 				}
 			}
 			//super.PerformTargetReached(_CurrentTask);
