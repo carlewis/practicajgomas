@@ -7,6 +7,7 @@ import es.upv.dsic.gti_ia.jgomas.Vector3D;
 
 import student.MyComponents.AgentType;
 import student.MyComponents.BaitCommand;
+import student.MyComponents.BaitMessage;
 import student.MyComponents.BaitRole;
 import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
@@ -56,5 +57,13 @@ public abstract class Communication extends CyclicBehaviour {
 		tokens.nextToken();
 		z = Double.parseDouble(tokens.nextToken());
 		return new Vector3D(x, y, z);
+	}
+	
+	protected BaitMessage ContentsToMessage(String s) {
+		StringTokenizer tokens = new StringTokenizer(s);
+		tokens.nextToken(); // Quita el (
+		String sContentMessage = tokens.nextToken();
+		BaitMessage bm = MyComponents.parseBaitMessage(sContentMessage);
+		return MyComponents.parseBaitMessage(sContentMessage);
 	}
 }

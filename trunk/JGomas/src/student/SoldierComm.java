@@ -9,6 +9,7 @@ import es.upv.dsic.gti_ia.jgomas.Vector3D;
 
 import student.MyComponents.AgentType;
 import student.MyComponents.BaitCommand;
+import student.MyComponents.BaitMessage;
 import student.MyComponents.BaitRole;
 import student.MyComponents.LeaderMessage;
 
@@ -136,7 +137,12 @@ public class SoldierComm extends Communication {
 				m_cSoldier.SetThresholdValues();
 			}
 			else if (msgLO.getConversationId() == "INFORM") {
-				//System.out.println("El medico es " + ContentToAgent(msgLO.getContent()));
+				// indica al lider que el emisor esta preparado (si es un mensaje ready)
+				System.out.println("llega un mensaje");
+				if (ContentsToMessage(msgLO.getContent()) == BaitMessage.READY) {
+					System.out.println("llega");
+					m_cSoldier.SetAgentPrepared(msgLO.getSender());
+				}
 			}
 			else if (msgLO.getConversationId() == "COMMAND") {
 				ExecuteCommand(msgLO.getContent());

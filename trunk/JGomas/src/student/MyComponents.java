@@ -28,6 +28,10 @@ public class MyComponents {
 	/**
 	 * 
 	 */
+	public enum BaitMessage { READY };
+	/**
+	 * 
+	 */
 	public enum BaitCommand { GOTO };
 	/**
 	 * 
@@ -62,6 +66,11 @@ public class MyComponents {
 	public static BaitCommand parseBaitCommand(String t) {
 		if (t.equals("GOTO")) return BaitCommand.GOTO;
 		return BaitCommand.GOTO;
+	}
+	
+	public static BaitMessage parseBaitMessage(String t) {
+		if (t.equals("READY")) return BaitMessage.READY;
+		return BaitMessage.READY;
 	}
 	
 }
