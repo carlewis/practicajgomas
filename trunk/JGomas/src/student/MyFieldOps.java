@@ -360,12 +360,12 @@ public class MyFieldOps extends CFieldOps {
 	 * 
 	 */
 	protected boolean GeneratePath() {
-		if ((m_AStarPath = PathFindingSolver.FindPathToTarget(m_Map, m_Movement)) != null) { 
+		/*if ((m_AStarPath = PathFindingSolver.FindPathToTarget(m_Map, m_Movement)) != null) { 
 			String startPos;
 			startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
 			AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
 			return true;
-		}
+		}*/
 		return false;
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
