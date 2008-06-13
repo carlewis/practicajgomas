@@ -2,19 +2,17 @@ package student;
 
 
 import jade.core.AID;
-import jade.core.behaviours.*;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
-import jade.lang.acl.MessageTemplate;
 
 import java.util.Iterator;
-import java.util.StringTokenizer;
 
 import student.MyComponents.BaitRole;
+import student.PathFinding.PathFindingSolver;
 
 import es.upv.dsic.gti_ia.jgomas.CMedic;
 import es.upv.dsic.gti_ia.jgomas.CPack;
@@ -40,7 +38,13 @@ public class MyMedic extends CMedic {
 	 * Rol dentro de la estrategia del señuelo
 	 */
 	protected MyComponents.BaitRole m_nAgentRole;
-
+	/**
+	 * AID del lider del grupo
+	 */
+	protected AID m_TeamLeader = null;
+	public void setTeamLeader(AID aid) {
+		m_TeamLeader = aid;
+	}
 	protected void setup() {
 		
 		AddServiceType("Communications");
@@ -96,48 +100,63 @@ public class MyMedic extends CMedic {
 		}
 		
 	}
-	
-	private void LaunchCommunicationsBehaviour() {
-		addBehaviour(new CyclicBehaviour() {
-			private static final long serialVersionUID = 1L;
-
-			private MyComponents.AgentType ContentsToAgentType(String s) {
-				StringTokenizer tokens = new StringTokenizer(s);
-				tokens.nextToken(); // Quita (
-				return MyComponents.parseAgentType(tokens.nextToken());
-			}
-			private MyComponents.BaitRole ContentsToBaitRole(String s) {
-				StringTokenizer tokens = new StringTokenizer(s);
-				tokens.nextToken(); // Quita (
-				return MyComponents.parseBaitRole(tokens.nextToken());
-			}
-			public void action() {
-				MessageTemplate template = MessageTemplate.MatchAll();
-				ACLMessage msgLO = receive(template);
-				if (msgLO != null) {
-					if (msgLO.getConversationId() == "COMM_SUBSCRIPTION") {
-						// 
-						AID cSender = msgLO.getSender();
-						System.out.println("Leida suscripcion de agente tipo " + 
-								ContentsToAgentType(msgLO.getContent()));
-						cSender.getName();
-						//AgentType nType = ContentsToAgentType(msgLO.getContents());
-					}
-					else if (msgLO.getConversationId() == "ROLE_PROTOCOL") {
-						m_nAgentRole = ContentsToBaitRole(msgLO.getContent());
-						if (ContentsToBaitRole(msgLO.getContent()) == BaitRole.BAIT_MEDIC) {
-							// TODO Caracteristicas propias del medico del señuelo
-							System.out.println(getName() + " yo soy el medico del puteado");
-						}
-					}
-					// else if (msgLO.getConversationId() == "LO QUE SEA") {}
-				}
-			}
-		});
-		
+	/**
+	 * 
+	 * @param ai
+	 */
+	public void AddAgent(AgentInfo ai) {
+	/*	if (ai.type == AgentType.SOLDIER)
+			m_iTeamSoldiersCount++;
+		m_TeamAgents.add(ai);*/
 	}
-
-	
+	/**
+	 * 
+	 */
+	private void LaunchCommunicationsBehaviour() {
+		addBehaviour(new MedicComm(this));
+	}
+	/**
+	 * 
+	 */
+	public void AddTaskGoto(Vector3D point) {
+		System.out.println("añadiendo tarea ir a ( " + point.x + " , " + point.z + " )");
+		// TODO
+		System.out.println("punto " + point.x + " " + point.z);
+		m_AStarPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
+				point.x, point.z);
+		String startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
+		m_iAStarPathIndex = 0;
+		System.out.print(" ( " + m_AStarPath[0].x + " , " + m_AStarPath[0].z + " )->"); 
+		System.out.println(" ( " + m_AStarPath[m_AStarPath.length - 1].x + " , " + m_AStarPath[m_AStarPath.length - 1].z + " )"); 
+		AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
+		/*if (m_nAgentRole == BaitRole.BAIT)
+			m_nBaitState = BaitState.MOVING;*/
+	}
+	/**
+	 * 
+	 * @param role
+	 */
+	public void setAgentRole(BaitRole role) {
+		m_nAgentRole = role;
+	}
+	/**
+	 * Asigna los umbrales dependiendo del tipo de papel que juega dentro de la estrategia
+	 */
+	protected void SetThresholdValues() {
+		if (m_nAgentRole == BaitRole.BAIT)
+			m_Threshold.SetAmmo(10);
+		//m_Threshold.SetAmmo
+	}
+	/**
+	 * 
+	 */
+	protected void SendReadyMsgToLeader() {
+			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+			msg.addReceiver(m_TeamLeader);
+			msg.setConversationId("INFORM");
+			msg.setContent(" ( READY ) ");
+			send(msg);
+	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class
 	//
@@ -267,7 +286,11 @@ public class MyMedic extends CMedic {
 	 * @return <tt> FALSE</tt> 
 	 * 
 	 */
-	protected boolean ShouldUpdateTargets() { return false; }  
+	protected boolean ShouldUpdateTargets() { 
+		if (m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE)
+			return true;
+		return false;
+	}  
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -504,19 +527,11 @@ public class MyMedic extends CMedic {
 	 * 
 	 */
 	protected void PerformLookAction() {
-	/*	try {
-			DFAgentDescription dfd = new DFAgentDescription();
-			ServiceDescription sd = new ServiceDescription();
-			sd.setType("RespondLookOut");
-			dfd.addServices(sd);
-			//DFAgentDescription[] result = DFService.search(this, dfd);
-			// Al no poner nada en el dfd en result estan todos los agentes 
-			// de los dos equipos
-
-			
-		} catch (FIPAException e) {
-			
-		}*/
+		if ((m_AStarPath != null)) {
+			System.out.println("->" + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority() + "    " + 
+					m_Movement.getPosition().x + " " + m_Movement.getPosition().z + "     "
+					+ m_AStarPath[m_iAStarPathIndex].x + " " + m_AStarPath[m_iAStarPathIndex].z);
+		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -577,7 +592,19 @@ public class MyMedic extends CMedic {
 			else
 				System.out.println(getLocalName()+ ": Medic cannot leave Medic Packs");
 			break;
-			
+		case CTask.TASK_WALKING_PATH:
+			System.out.println("medic targetreached TASK_WALKING_PATH " + m_AStarPath.length + " " + m_iAStarPathIndex);
+			if (m_iAStarPathIndex < m_AStarPath.length - 1) {
+				m_iAStarPathIndex++;
+				String startPos = " ( " + m_AStarPath[m_iAStarPathIndex].x + " , 0.0 , " + 
+					m_AStarPath[m_iAStarPathIndex].z + " ) ";
+				AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, _CurrentTask.getPriority());
+			} // ya llegamos al final del camino
+			else {
+				// envio un mensaje de sincronizacion al lider.
+				SendReadyMsgToLeader();
+			}	
+			break;
 		default:
 			super.PerformTargetReached(_CurrentTask);
 			break;
