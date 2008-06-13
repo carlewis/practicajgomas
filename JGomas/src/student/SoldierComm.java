@@ -48,6 +48,9 @@ public class SoldierComm extends Communication {
 			m_cSoldier.AddTaskGoto(point);
 			// TODO El metodo lanza una tarea AddTask para ir al sitio. 	
 		}
+		if (ContentsToCommand(s) == BaitCommand.WAIT) {
+			m_cSoldier.WaitForCommand();
+		}
 		//m_cSoldier.
 	}
 	/** 
