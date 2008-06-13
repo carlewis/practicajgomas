@@ -7,8 +7,8 @@ public class Node {
 	private static CTerrainMap m_Map;
 	private static final float LIN_INC_COST = 1;
 	//private static final int DIAG_INC_COST = 14;
-	private static double m_fTargetX;
-	private static double m_fTargetZ;
+	private double m_fTargetX;
+	private double m_fTargetZ;
 	private int m_iPosX;
 	private int m_iPosZ;
 	private Node m_Hijos[];
@@ -20,7 +20,7 @@ public class Node {
 	public static void setMap(CTerrainMap m) {
 		m_Map = m;
 	}
-	public static void setTarget(double px, double pz) {
+	public void setTarget(double px, double pz) {
 		m_fTargetX = px;
 		m_fTargetZ = pz;
 	}
@@ -92,6 +92,7 @@ public class Node {
 		for (int i = 0; i < 4; i++) {
 			if (m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i])) {
 				m_Hijos[i] = new Node();
+				m_Hijos[i].setTarget(m_fTargetX, m_fTargetZ);
 				m_Hijos[i].setPosX(getPosX() + incPosX[i]);
 				m_Hijos[i].setPosZ(getPosZ() + incPosZ[i]);
 				m_Hijos[i].setFCost(getFCost() + LIN_INC_COST);
@@ -113,6 +114,7 @@ public class Node {
 						(double) ((getPosX() + incPosX[i]) * 8), 
 						(double) ((getPosZ() + incPosZ[i]) * 8))) {
 				m_Hijos[i] = new Node();
+				m_Hijos[i].setTarget(m_fTargetX, m_fTargetZ);
 				m_Hijos[i].setPosX(getPosX() + incPosX[i]);
 				m_Hijos[i].setPosZ(getPosZ() + incPosZ[i]);
 				m_Hijos[i].setFCost(getFCost() + LIN_INC_COST);

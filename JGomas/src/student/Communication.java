@@ -9,11 +9,18 @@ import student.MyComponents.AgentType;
 import student.MyComponents.BaitCommand;
 import student.MyComponents.BaitMessage;
 import student.MyComponents.BaitRole;
+import student.MyComponents.LeaderMessage;
 import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
 
 @SuppressWarnings("serial")
 public abstract class Communication extends CyclicBehaviour {
+
+	protected LeaderMessage GetLeaderMessageType(String s) {
+		StringTokenizer tokens = new StringTokenizer(s);
+		tokens.nextToken(); // Quita (
+		return MyComponents.parseLeaderMessage(tokens.nextToken());
+	}
 	
 	protected AgentType ContentsToAgentType(String s) {
 		StringTokenizer tokens = new StringTokenizer(s);
@@ -63,7 +70,6 @@ public abstract class Communication extends CyclicBehaviour {
 		StringTokenizer tokens = new StringTokenizer(s);
 		tokens.nextToken(); // Quita el (
 		String sContentMessage = tokens.nextToken();
-		BaitMessage bm = MyComponents.parseBaitMessage(sContentMessage);
 		return MyComponents.parseBaitMessage(sContentMessage);
 	}
 }

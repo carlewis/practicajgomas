@@ -1,0 +1,79 @@
+package student;
+
+import jade.core.AID;
+import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
+
+import es.upv.dsic.gti_ia.jgomas.Vector3D;
+
+import student.MyComponents.AgentType;
+import student.MyComponents.BaitCommand;
+import student.MyComponents.BaitRole;
+import student.MyComponents.LeaderMessage;
+
+@SuppressWarnings("serial")
+public class MedicComm extends Communication {
+	/** Puntero al agente */
+	private MyMedic m_cMedic = null;
+	
+	public MedicComm(MyMedic cMedic) {
+		m_cMedic = cMedic;
+	}
+	
+	private void ExecuteCommand(String s) {
+		// Se separa el comando y los contenidos
+		System.out.println("ejecutar comando " + s);
+		if (ContentsToCommand(s) == BaitCommand.GOTO) {
+			// Sacamos la direccion del mensaje
+			Vector3D point = ContentsToCommandPoint(s);
+			// Se llama al metodo que sea del objeto m_cMedic
+			m_cMedic.AddTaskGoto(point);
+			// TODO El metodo lanza una tarea AddTask para ir al sitio. 	
+		}
+		//m_cMedic.
+	}
+	/** 
+	 * Metodo principal del comportamiento 
+	 */
+	public void action() {
+		MessageTemplate template = MessageTemplate.MatchAll();
+		// recibir un mensaje
+		ACLMessage msgLO = m_cMedic.receive(template);
+		if (msgLO != null) {
+			// Mensaje para enlazarse con los otros agentes
+			if (msgLO.getConversationId() == "COMM_SUBSCRIPTION") {
+				// 
+				AID cSender = msgLO.getSender();
+				AgentType at = ContentsToAgentType(msgLO.getContent());
+				m_cMedic.AddAgent(new AgentInfo(at, cSender));
+			}
+			else if (msgLO.getConversationId() == "LEADER_PROTOCOL") {
+				// Recepcion mensajes lider
+				LeaderMessage nType = GetLeaderMessageType(msgLO.getContent());
+				if (nType == LeaderMessage.FINAL_LEADER) {
+					m_cMedic.setTeamLeader(msgLO.getSender());
+				}
+			}
+			else if (msgLO.getConversationId() == "ROLE_PROTOCOL") {
+				// Hay que ver el papel que nos ha dado el lider
+				BaitRole role = ContentsToBaitRole(msgLO.getContent());
+				m_cMedic.setAgentRole(role);
+				if (ContentsToBaitRole(msgLO.getContent()) == BaitRole.BAIT_MEDIC) {
+					// TODO Caracteristicas propias del medico del señuelo
+					System.out.println(m_cMedic.getName() + " yo soy el medico del puteado");
+				}
+				// Una vez sabemos el papel que jugamos modificamos los umbrales
+				m_cMedic.SetThresholdValues();
+			}
+			else if (msgLO.getConversationId() == "INFORM") {
+				
+			}
+			else if (msgLO.getConversationId() == "COMMAND") {
+				ExecuteCommand(msgLO.getContent());
+			}
+		}
+
+	}
+}
+
+

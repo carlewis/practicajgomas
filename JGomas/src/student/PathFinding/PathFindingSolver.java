@@ -16,7 +16,7 @@ public class PathFindingSolver {
 	public static Vector3D[] FindPathToTarget(CTerrainMap map, CMobile movement) {
 		m_cMap = map;
 		Node.setMap(map);
-		Node.setTarget(movement.getDestination().x / 8, movement.getDestination().z / 8);
+		//Node.setTarget(movement.getDestination().x / 8, movement.getDestination().z / 8);
 			
 		System.out.println("El nodo de partida es el actual: " + Math.floor(movement.getPosition().x / 8) + 
 				" " + Math.floor(movement.getPosition().z / 8));
@@ -25,6 +25,7 @@ public class PathFindingSolver {
 		
 		// Generamos el nodo de partida
 		Node start = new Node();
+		start.setTarget(movement.getDestination().x / 8, movement.getDestination().z / 8);
 		start.setPadre(null);
 		start.setPosX((int)(Math.floor(movement.getPosition().x / 8)));
 		start.setPosZ((int)(Math.floor(movement.getPosition().z / 8)));
@@ -96,10 +97,11 @@ public class PathFindingSolver {
 	 */
 	public static Vector3D[] FindBaitPath(double startX, double startZ, double targetX, double targetZ) {
 		Node.setMap(m_cMap);
-		Node.setTarget(targetX / 8, targetZ / 8);
+		//Node.setTarget(targetX / 8, targetZ / 8);
 		
 		// Generamos el nodo de partida
 		Node start = new Node();
+		start.setTarget(targetX / 8, targetZ / 8);
 		start.setPadre(null);
 		start.setPosX((int)(Math.floor(startX / 8)));
 		start.setPosZ((int)(Math.floor(startZ / 8)));

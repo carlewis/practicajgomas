@@ -10,7 +10,7 @@ public class BaitLib {
 	/** Posicion de la bandera */
 	private static Vector3D cGoal;
 	/** Distancia entre la bandera y los puntos de ataque */
-	private static final double BAIT_RADIOUS = 40.0;
+	private static final double BAIT_RADIOUS = 56.0;
 	/** Puntos de ataque que estan opuestos */
 	private static Vector<Vector3D> cFirstQualityPoints = new Vector<Vector3D>();
 	/** Puntos de ataque que estan separados */

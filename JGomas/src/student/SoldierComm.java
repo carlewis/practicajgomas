@@ -25,11 +25,6 @@ public class SoldierComm extends Communication {
 		m_fLeaderBid = fBid;
 	}
 	
-	private LeaderMessage GetLeaderMessageType(String s) {
-		StringTokenizer tokens = new StringTokenizer(s);
-		tokens.nextToken(); // Quita (
-		return MyComponents.parseLeaderMessage(tokens.nextToken());
-	}
 	// Devuelve true si yo soy el lider, falso en otro caso
 	private boolean ContentsToLeader(String s) {
 		StringTokenizer tokens = new StringTokenizer(s);
@@ -129,16 +124,15 @@ public class SoldierComm extends Communication {
 				// Hay que ver el papel que nos ha dado el lider
 				BaitRole role = ContentsToBaitRole(msgLO.getContent());
 				m_cSoldier.setAgentRole(role);
-				if (role == BaitRole.BAIT)
+				if (role == BaitRole.BAIT) 
 					System.out.println(m_cSoldier.getName() + " yo soy el puteado");
-				else if (role == BaitRole.BAIT_SOLDIER)
+				else if (role == BaitRole.BAIT_SOLDIER) 
 					System.out.println(m_cSoldier.getName() + " yo soy el que respalda al puteado");
 				// Una vez sabemos el papel que jugamos modificamos los umbrales
 				m_cSoldier.SetThresholdValues();
 			}
 			else if (msgLO.getConversationId() == "INFORM") {
 				// indica al lider que el emisor esta preparado (si es un mensaje ready)
-				System.out.println("llega un mensaje");
 				if (ContentsToMessage(msgLO.getContent()) == BaitMessage.READY) {
 					System.out.println("llega");
 					m_cSoldier.SetAgentPrepared(msgLO.getSender());
