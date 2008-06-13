@@ -30,6 +30,9 @@ public class MedicComm extends Communication {
 			m_cMedic.AddTaskGoto(point);
 			// TODO El metodo lanza una tarea AddTask para ir al sitio. 	
 		}
+		if (ContentsToCommand(s) == BaitCommand.WAIT) {
+			m_cMedic.WaitForCommand();
+		}
 		//m_cMedic.
 	}
 	/** 

@@ -32,7 +32,7 @@ public class MyComponents {
 	/**
 	 * 
 	 */
-	public enum BaitCommand { GOTO };
+	public enum BaitCommand { GOTO, WAIT};
 	/**
 	 * 
 	 * @param t: string
@@ -65,7 +65,8 @@ public class MyComponents {
 	
 	public static BaitCommand parseBaitCommand(String t) {
 		if (t.equals("GOTO")) return BaitCommand.GOTO;
-		return BaitCommand.GOTO;
+		if (t.equals("WAIT")) return BaitCommand.WAIT;
+		return BaitCommand.WAIT;
 	}
 	
 	public static BaitMessage parseBaitMessage(String t) {

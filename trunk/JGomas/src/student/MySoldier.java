@@ -331,6 +331,14 @@ public class MySoldier extends CSoldier {
 	protected void CheckBaitPathToWithdraw(Vector3D path) {
 		
 	}
+	protected void SendWaitCommandEverybody() {
+		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+		for (int i = 0; i < m_TeamAgents.size(); i++)
+			msg.addReceiver(m_TeamAgents.get(i).aid);
+		msg.setConversationId("COMMAND");
+		msg.setContent(" ( WAIT ) ");
+		send(msg);
+	}
 	/**
 	 * Envia al señuelo y su equipos sus coordenadas
 	 */
@@ -385,7 +393,14 @@ public class MySoldier extends CSoldier {
 			msg.setContent(" ( READY ) ");
 			send(msg);
 	}
-	
+	/**
+	 * Genera una tarea goto position. Cuando llega espera al siguiente comando
+	 */
+	public void WaitForCommand() {
+		System.out.println("añadiendo tarea esperar");
+		String startPos = " ( " + m_Movement.getPosition().x + " , 0.0 , " + m_Movement.getPosition().z + " ) ";
+		AddTask(CTask.TASK_GOTO_POSITION, getAID(), startPos, m_CurrentTask.getPriority() + 1);
+	}
 	/**
 	 * 
 	 */
@@ -550,8 +565,16 @@ public class MySoldier extends CSoldier {
 	 * 
 	 */
 	protected boolean ShouldUpdateTargets() { 
-		if (m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE)
+		if (m_nAgentRole == BaitRole.BAIT) { 
+			if (m_nBaitState == BaitState.ATTACK) {
+				return true;
+			}
+		}
+		if ((m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE) ||
+				(m_CurrentTask.getType() == CTask.TASK_GOTO_POSITION))
 			return true;
+
+
 		return false; 
 	}  
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -796,6 +819,7 @@ public class MySoldier extends CSoldier {
 			// TODO
 			switch (m_nLeaderState) {
 			case DEFINE_POINTS:
+				SendWaitCommandEverybody();
 				// Genera los puntos clave
 				PathFindingSolver.setMap(m_Map);
 				BaitLib.GenerateBaitPoints(m_Movement.getDestination(), m_Movement.getPosition());
@@ -851,16 +875,25 @@ public class MySoldier extends CSoldier {
 				break;
 			case ATTACK:
 				// Ataca hasta que se superan los umbrales de armas o salud
+				System.out.println("bait attack: " + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority());
+				if (m_CurrentTask.getType() == CTask.TASK_WALKING_PATH) {
+					String pos = " ( " + m_Movement.getDestination().x + " , 0.0 , " + 
+					m_Movement.getDestination().z + " ) ";
+					//TODO porque no inserta la tarea TASK_GET_OBJECTIVE?
+					//SetUpPriorities();
+					AddTask(CTask.TASK_GET_OBJECTIVE, getAID(), pos, m_CurrentTask.getPriority() + 1);
+					
+				}
 				break;
 			case WITHDRAW:
 				// Retirada
 				break;
 			}
-			if (m_AStarPath != null) {
+			/*if (m_AStarPath != null) {
 				System.out.println("bait ->" + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority() + "    " + 
 					m_Movement.getPosition().x + " " + m_Movement.getPosition().z + "     "
 					+ m_AStarPath[m_iAStarPathIndex].x + " " + m_AStarPath[m_iAStarPathIndex].z);
-			}
+			}*/
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -903,17 +936,21 @@ public class MySoldier extends CSoldier {
 				AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, _CurrentTask.getPriority());
 			} // ya llegamos al final del camino
 			else {
+				m_iAStarPathIndex++;
 				// envio un mensaje de sincronizacion al lider
 				if (!m_bIsLeader) {
 					SendReadyMsgToLeader();
 					if (m_nAgentRole == BaitRole.BAIT) {
-						String pos = " ( " + m_Movement.getDestination().x + " , 0.0 , " + 
-							m_Movement.getDestination().z + " ) ";
-						AddTask(CTask.TASK_GET_OBJECTIVE, getAID(), pos, _CurrentTask.getPriority() + 1);
+						m_nBaitState = BaitState.ATTACK;
+						//AddTask(CTask.TASK_GET_OBJECTIVE, getAID(), pos, _CurrentTask.getPriority() + 1);
+						super.PerformTargetReached(_CurrentTask);
 					}
 				}
 			}
-			//super.PerformTargetReached(_CurrentTask);
+			//
+			break;
+		case CTask.TASK_GOTO_POSITION:
+			System.out.println("targetReached goto position");
 			break;
 		default:
 			super.PerformTargetReached(_CurrentTask);
