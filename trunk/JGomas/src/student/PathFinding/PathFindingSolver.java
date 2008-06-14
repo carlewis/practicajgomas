@@ -1,21 +1,26 @@
 package student.PathFinding;
 
+import student.BaitLib;
 import es.upv.dsic.gti_ia.jgomas.CTerrainMap;
 import es.upv.dsic.gti_ia.jgomas.Vector3D;
 import es.upv.dsic.gti_ia.jgomas.CMobile;
 
 public class PathFindingSolver {
-	public static CTerrainMap m_cMap;
+	private CTerrainMap m_cMap;
+	private BaitLib m_cBaitLib;
 	
-	public static void setMap(CTerrainMap map) {
+	public void setMap(CTerrainMap map) {
 		m_cMap = map;
+	}
+	public void setBaitLib(BaitLib cBaitLib) {
+		m_cBaitLib = cBaitLib;
 	}
 	/**
 	 * Implementa la busqueda de una ruta hasta la bandera mediante un algoritmo A*
 	 */
-	public static Vector3D[] FindPathToTarget(CTerrainMap map, CMobile movement) {
+	public Vector3D[] FindPathToTarget(CTerrainMap map, CMobile movement) {
 		m_cMap = map;
-		Node.setMap(map);
+		//Node.setMap(map);
 		//Node.setTarget(movement.getDestination().x / 8, movement.getDestination().z / 8);
 			
 		System.out.println("El nodo de partida es el actual: " + Math.floor(movement.getPosition().x / 8) + 
@@ -25,6 +30,7 @@ public class PathFindingSolver {
 		
 		// Generamos el nodo de partida
 		Node start = new Node();
+		start.setMap(map);
 		start.setTarget(movement.getDestination().x / 8, movement.getDestination().z / 8);
 		start.setPadre(null);
 		start.setPosX((int)(Math.floor(movement.getPosition().x / 8)));
@@ -95,12 +101,14 @@ public class PathFindingSolver {
 	 * @return Un array de coordenadas Vector3D que forman el camino, si existe. null 
 	 * en otro caso
 	 */
-	public static Vector3D[] FindBaitPath(double startX, double startZ, double targetX, double targetZ) {
-		Node.setMap(m_cMap);
+	public Vector3D[] FindBaitPath(double startX, double startZ, double targetX, double targetZ) {
+		//Node.setMap(m_cMap);
 		//Node.setTarget(targetX / 8, targetZ / 8);
 		
 		// Generamos el nodo de partida
 		Node start = new Node();
+		start.setMap(m_cMap);
+		start.setBaitLib(m_cBaitLib);
 		start.setTarget(targetX / 8, targetZ / 8);
 		start.setPadre(null);
 		start.setPosX((int)(Math.floor(startX / 8)));
@@ -166,7 +174,7 @@ public class PathFindingSolver {
 	 * @param goal
 	 * @return true si es posible llegar en linea recta, false en otro caso
 	 */
-	public static boolean CheckDirectPath(Vector3D origin, Vector3D goal) {
+	public boolean CheckDirectPath(Vector3D origin, Vector3D goal) {
 		System.out.print("Chequeando (" + origin.x + ", " + origin.z + ")->(" + goal.x + ", " + goal.z + ")...");
 		double dIncX = goal.x - origin.x;
 		double dIncZ = goal.z - origin.z;

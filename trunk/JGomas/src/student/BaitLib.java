@@ -1,32 +1,41 @@
 package student;
 
 import student.PathFinding.PathFindingSolver;
+import es.upv.dsic.gti_ia.jgomas.CTerrainMap;
 import es.upv.dsic.gti_ia.jgomas.Vector3D;
 import java.util.Vector;
 
 
 public class BaitLib {
-	// Mapa
+	private PathFindingSolver m_cSolver;
 	/** Posicion de la bandera */
-	private static Vector3D cGoal;
+	private Vector3D cGoal;
 	/** Distancia entre la bandera y los puntos de ataque */
-	private static final double BAIT_RADIOUS = 56.0;
+	private final double BAIT_RADIOUS = 56.0;
 	/** Puntos de ataque que estan opuestos */
-	private static Vector<Vector3D> cFirstQualityPoints = new Vector<Vector3D>();
+	private Vector<Vector3D> cFirstQualityPoints = new Vector<Vector3D>();
 	/** Puntos de ataque que estan separados */
-	private static Vector<Vector3D> cSecondQualityPoints = new Vector<Vector3D>();
+	private Vector<Vector3D> cSecondQualityPoints = new Vector<Vector3D>();
 	/** Punto de ataque del señuelo */
-	private static Vector3D m_cBaitAttackPoint;
+	private Vector3D m_cBaitAttackPoint;
 	/** Punto de ataque del resto del equipo */
-	private static Vector3D m_cAttackPoint;
+	private Vector3D m_cAttackPoint;
+	public void setPathFindingSolver(PathFindingSolver cSolver) {
+		m_cSolver = cSolver;
+		m_cSolver.setBaitLib(this);
+	}
+	public void setGoal(Vector3D cGoal) {
+		this.cGoal = cGoal;
+	}
 	/**
 	 * Genera los puntos claves dentro de la estrategia de ataque del señuelo
 	 * Utilizado por el Lider del grupo
 	 * @param cGoal: Posicion de la bandera
 	 * @param cBase: Posicion de la base del atacante
 	 */
-	public static void GenerateBaitPoints(Vector3D cGoal, Vector3D cBase) {
-		BaitLib.cGoal = cGoal;
+	public void GenerateBaitPoints(CTerrainMap cMap, Vector3D cGoal, Vector3D cBase) {
+		this.cGoal = cGoal;
+		
 		// posicion del objetivo		
 		System.out.println("la bandera esta en " + cGoal.x + ", " + cGoal.z);
 		// posicion de la base?
@@ -45,10 +54,12 @@ public class BaitLib {
 			cAttackPoints[i].x = cGoal.x + dGoalXIncs[i];
 			cAttackPoints[i].z = cGoal.z + dGoalZIncs[i];
 		}
+		
+		m_cSolver.setMap(cMap);
 		// Comprobamos si se puede alcanzar el objetivo en linea recta
 		boolean bValidPoints[] = new boolean[8];
 		for (int i = 0; i < 8; i++) 
-			bValidPoints[i] = PathFindingSolver.CheckDirectPath(cAttackPoints[i], cGoal);
+			bValidPoints[i] = m_cSolver.CheckDirectPath(cAttackPoints[i], cGoal);
 		// Seleccionamos los puntos de primera y segunda categoría
 		for (int i = 0; i < 4; i++) {
 			// Los dos puntos opuestos son validos
@@ -63,13 +74,12 @@ public class BaitLib {
 		for (int i = 0; i < 8; i++)
 			System.out.print("(" + cAttackPoints[i].x + "," + cAttackPoints[i].z + ")  ");
 		System.out.println("");
-		
 		// Buscamos las rutas entre la base y los puntos seleccionados en los 
 		// puntos de primera categoria
 		for (int i = 0; i < cFirstQualityPoints.size(); i += 2) {
-			if ((PathFindingSolver.FindBaitPath(cBase.x, cBase.z,
+			if ((m_cSolver.FindBaitPath(cBase.x, cBase.z,
 						cFirstQualityPoints.get(i).x, cFirstQualityPoints.get(i).z) == null) ||
-				(PathFindingSolver.FindBaitPath(cBase.x, cBase.z,
+				(m_cSolver.FindBaitPath(cBase.x, cBase.z,
 						cFirstQualityPoints.get(i+1).x, cFirstQualityPoints.get(i+1).z) == null)) {
 				// Se eliminan los dos puntos
 				cFirstQualityPoints.remove(i);
@@ -81,9 +91,9 @@ public class BaitLib {
 		// Buscamos las rutas entre la base y los puntos seleccionados en los 
 		// puntos de segunda categoría
 		for (int i = 0; i < cSecondQualityPoints.size(); i += 2) {
-			if ((PathFindingSolver.FindBaitPath(cBase.x, cBase.z,
+			if ((m_cSolver.FindBaitPath(cBase.x, cBase.z,
 						cSecondQualityPoints.get(i).x, cSecondQualityPoints.get(i).z) == null) ||
-				(PathFindingSolver.FindBaitPath(cBase.x, cBase.z,
+				(m_cSolver.FindBaitPath(cBase.x, cBase.z,
 						cSecondQualityPoints.get(i+1).x, cSecondQualityPoints.get(i+1).z) == null)) {
 				// Se eliminan los dos puntos
 				cSecondQualityPoints.remove(i);
@@ -128,7 +138,7 @@ public class BaitLib {
 	/**
 	 * Imprime por consola los puntos seleccionados
 	 */
-	private static void ShowPoints() {
+	private void ShowPoints() {
 		System.out.print("Puntos de primera categoria: ");
 		for (int i = 0; i < cFirstQualityPoints.size(); i += 2)
 			System.out.print("(" + cFirstQualityPoints.get(i).x + "," + cFirstQualityPoints.get(i).z + ")-(" + 
@@ -144,7 +154,7 @@ public class BaitLib {
 	/**
 	 * 
 	 */
-	private static void GetSecondQualityPoints(boolean bValidPoints[], Vector3D cAttackPoints[]) {
+	private void GetSecondQualityPoints(boolean bValidPoints[], Vector3D cAttackPoints[]) {
 		if (bValidPoints[0] && bValidPoints[4]) {
 			cSecondQualityPoints.add(cAttackPoints[0]);
 			cSecondQualityPoints.add(cAttackPoints[4]);
@@ -190,7 +200,7 @@ public class BaitLib {
 	 * @param dPointZ: coordenada Z
 	 * @return true si se encuentra dentro del cuadrado, false en otro caso
 	 */
-	public static boolean IsBattlePoint(double dPointX, double dPointZ) {
+	public boolean IsBattlePoint(double dPointX, double dPointZ) {
 		if ((dPointX > cGoal.x - BAIT_RADIOUS) && 
 			(dPointX < cGoal.x + BAIT_RADIOUS) &&
 			(dPointZ > cGoal.z - BAIT_RADIOUS) &&
@@ -203,14 +213,14 @@ public class BaitLib {
 	 * 
 	 * @return
 	 */
-	public static Vector3D getBaitAttackPoint() {
+	public Vector3D getBaitAttackPoint() {
 		return m_cBaitAttackPoint;
 	}
 	/**
 	 * 
 	 * @return
 	 */
-	public static Vector3D getAttackPoint() {
+	public Vector3D getAttackPoint() {
 		return m_cAttackPoint;
 	}
 }
