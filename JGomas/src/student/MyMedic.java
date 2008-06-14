@@ -28,6 +28,8 @@ public class MyMedic extends CMedic {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+	protected PathFindingSolver m_cSolver;
+	protected BaitLib m_cBaitLib;
 	/**
 	 * Nombre del servicio de comunicaciones. Depende del equipo del agente
 	 */
@@ -70,7 +72,13 @@ public class MyMedic extends CMedic {
 		SetUpPriorities();
 		// Comienza la comunicacion con el resto de agentes
 		StartAgentCommunications();
-		}
+		m_cSolver = new PathFindingSolver();
+		m_cSolver.setMap(m_Map);
+		m_cBaitLib = new BaitLib();
+		m_cBaitLib.setPathFindingSolver(m_cSolver);
+		m_cBaitLib.setGoal(m_Movement.getDestination());
+	}
+	
 	/**
 	 * Comienza la comunicacion entre el agente y el resto del equipo
 	 */
@@ -143,7 +151,11 @@ public class MyMedic extends CMedic {
 		// TODO
 		System.out.println(m_Movement.getPosition().x + " " + m_Movement.getPosition().z + 
 				"->" + point.x + " " + point.z);
-		m_AStarPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
+		/*if (m_cSolver == null) { 
+			m_cSolver = new PathFindingSolver();
+			m_cSolver.setMap(m_Map);
+		}*/
+		m_AStarPath = m_cSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
 				point.x, point.z);
 		if (m_AStarPath == null)
 			System.out.println("la ruta es nula!");
@@ -642,7 +654,9 @@ if (DEBUG_MEDIC) {
 				System.out.println(getLocalName()+ ": Medic cannot leave Medic Packs");
 			break;
 		case CTask.TASK_WALKING_PATH:
-			System.out.println("medic targetreached TASK_WALKING_PATH " + m_iAStarPathIndex + "/" + (m_AStarPath.length-1));
+if (DEBUG_MEDIC) {
+	System.out.println("medic targetreached TASK_WALKING_PATH " + m_iAStarPathIndex + "/" + (m_AStarPath.length-1));
+}
 			if (m_iAStarPathIndex < m_AStarPath.length - 1) {
 				m_iAStarPathIndex++;
 				String startPos = " ( " + m_AStarPath[m_iAStarPathIndex].x + " , 0.0 , " + 

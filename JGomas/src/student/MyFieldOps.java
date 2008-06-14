@@ -28,7 +28,8 @@ public class MyFieldOps extends CFieldOps {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	
+	protected PathFindingSolver m_cSolver;
+	protected BaitLib m_cBaitLib;
 	/**
 	 * Nombre del servicio de comunicaciones. Depende del equipo del agente
 	 */
@@ -70,7 +71,11 @@ public class MyFieldOps extends CFieldOps {
 		SetUpPriorities();
 		// Comienza la comunicacion con el resto de agentes
 		StartAgentCommunications();
-	
+		m_cSolver = new PathFindingSolver();
+		m_cSolver.setMap(m_Map);
+		m_cBaitLib = new BaitLib();
+		m_cBaitLib.setPathFindingSolver(m_cSolver);
+		m_cBaitLib.setGoal(m_Movement.getDestination());
 	}
 	/**
 	 * Comienza la comunicacion entre el agente y el resto del equipo
@@ -176,7 +181,11 @@ public class MyFieldOps extends CFieldOps {
 		System.out.println("añadiendo tarea ir a ( " + point.x + " , " + point.z + " )");
 		// TODO
 		System.out.println("punto " + point.x + " " + point.z);
-		m_AStarPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
+		/*if (m_cSolver == null) {
+			m_cSolver = new PathFindingSolver();
+			m_cSolver.setMap(m_Map);
+		}*/
+		m_AStarPath = m_cSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
 				point.x, point.z);
 		if (m_AStarPath == null)
 			System.out.println("fieldops: la ruta es null");
@@ -641,7 +650,9 @@ if (m_nAgentRole == BaitRole.BAIT_FIELDOP)
 				System.out.println(getLocalName()+ ": Medic cannot leave Medic Packs");
 			break;
 		case CTask.TASK_WALKING_PATH:
-			System.out.println("fieldops targetreached TASK_WALKING_PATH " + m_iAStarPathIndex + "/" + (m_AStarPath.length-1));
+if (DEBUG_FIELDOP) {
+	System.out.println("fieldops targetreached TASK_WALKING_PATH " + m_iAStarPathIndex + "/" + (m_AStarPath.length-1));
+}
 			if (m_iAStarPathIndex < m_AStarPath.length - 1) {
 				m_iAStarPathIndex++;
 				String startPos = " ( " + m_AStarPath[m_iAStarPathIndex].x + " , 0.0 , " + 

@@ -34,11 +34,12 @@ public class MySoldier extends CSoldier {
 	
 	private final boolean DEBUG_BAIT = false;
 	
-	
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+	protected PathFindingSolver m_cSolver;
+	protected BaitLib m_cBaitLib;
 	/**
 	 * Nombre del servicio de comunicaciones. Depende del equipo del agente
 	 */
@@ -155,7 +156,11 @@ public class MySoldier extends CSoldier {
 		m_fLeaderBid = Math.random() * 10;
 		m_iTeamSize = StartAgentCommunications();
 		NegociateLeaderRole();
-		
+		m_cSolver = new PathFindingSolver();
+		m_cSolver.setMap(m_Map);
+		m_cBaitLib = new BaitLib();
+		m_cBaitLib.setPathFindingSolver(m_cSolver);
+		m_cBaitLib.setGoal(m_Movement.getDestination());
 	}
 	
 	public ArrayList<AgentInfo> getTeamAgents() {
@@ -421,10 +426,14 @@ public class MySoldier extends CSoldier {
 		}
 		msgBaitPoint.setConversationId("COMMAND");
 		msgTeamPoint.setConversationId("COMMAND");
-		Vector3D cBaitPoint = BaitLib.getBaitAttackPoint();
+		Vector3D cBaitPoint = m_cBaitLib.getBaitAttackPoint();
 		msgBaitPoint.setContent(" ( GOTO , " + cBaitPoint.x + " , 0.0 , " + cBaitPoint.z + " ) ");
 		// Se selecciona el punto de retirada
-		Vector3D[] cPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x,
+		/*if (m_cSolver == null) {
+			m_cSolver = new PathFindingSolver();
+			m_cSolver.setMap(m_Map);
+		}*/
+		Vector3D[] cPath = m_cSolver.FindBaitPath(m_Movement.getPosition().x,
 				m_Movement.getPosition().z, cBaitPoint.x, cBaitPoint.z);
 		if (cPath.length < 6)
 			m_sBaitTeamPoint = cPath[0].x + " , 0.0 , " + cPath[0].z;
@@ -456,15 +465,19 @@ public class MySoldier extends CSoldier {
 		}
 		msgTeamPoint.setConversationId("COMMAND");
 		// Punto final
-		Vector3D cTeamPoint = BaitLib.getAttackPoint();
+		Vector3D cTeamPoint = m_cBaitLib.getAttackPoint();
 		// Ruta hasta el punto
-		m_AStarPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x,
+		/*if (m_cSolver == null) {
+			m_cSolver = new PathFindingSolver();
+			m_cSolver.setMap(m_Map);
+		}*/
+		m_AStarPath = m_cSolver.FindBaitPath(m_Movement.getPosition().x,
 				m_Movement.getPosition().z, cTeamPoint.x, cTeamPoint.z);
 		if (m_AStarPath.length < 6)
 			m_sTeamPoint = m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z;
 		else
 			m_sTeamPoint = m_AStarPath[m_AStarPath.length-6].x + " , 0.0 , " + m_AStarPath[m_AStarPath.length-6].z;
-		m_AStarPath = PathFindingSolver.FindBaitPath(
+		m_AStarPath = m_cSolver.FindBaitPath(
 				m_Movement.getPosition().x,	m_Movement.getPosition().z, 
 				m_AStarPath[m_AStarPath.length-6].x, m_AStarPath[m_AStarPath.length-6].z);
 		msgTeamPoint.setContent(" ( GOTO , " + m_sTeamPoint + " ) ");
@@ -498,9 +511,13 @@ public class MySoldier extends CSoldier {
 	 * 
 	 */
 	public void AddTaskGoto(Vector3D point) {
-		System.out.println("añadiendo tarea ir a ( " + point.x + " , " + point.z + " )");
+		System.out.println("soldier: añadiendo tarea ir a ( " + point.x + " , " + point.z + " )");
 		// TODO
-		m_AStarPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
+		/*if (m_cSolver == null) {
+			m_cSolver = new PathFindingSolver();
+			m_cSolver.setMap(m_Map);
+		}*/
+		m_AStarPath = m_cSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
 				point.x, point.z);
 		if (m_AStarPath == null)
 			System.out.println("soldier: la ruta es nula");
@@ -1014,8 +1031,10 @@ public class MySoldier extends CSoldier {
 			case DEFINE_POINTS:
 				SendWaitCommandEverybody();
 				// Genera los puntos clave
-				PathFindingSolver.setMap(m_Map);
-				BaitLib.GenerateBaitPoints(m_Movement.getDestination(), m_Movement.getPosition());
+				//PathFindingSolver.setMap(m_Map);
+				//if (m_cBaitLib == null)
+				//	m_cBaitLib = new BaitLib();
+				m_cBaitLib.GenerateBaitPoints(m_Map, m_Movement.getDestination(), m_Movement.getPosition());
 				m_nLeaderState = LeaderState.MOVE_BAIT;
 				break;
 			case MOVE_BAIT:
@@ -1152,7 +1171,9 @@ if (DEBUG_BAIT) {
 			break;
 		
 		case CTask.TASK_WALKING_PATH:
-			System.out.println("targetreached TASK_WALKING_PATH " + m_iAStarPathIndex + "/" + (m_AStarPath.length-1) );
+if (DEBUG_BAIT) {
+	System.out.println("targetreached TASK_WALKING_PATH " + m_iAStarPathIndex + "/" + (m_AStarPath.length-1) );
+}
 			if (m_iAStarPathIndex < m_AStarPath.length - 1) {
 				m_iAStarPathIndex++;
 				String startPos = " ( " + m_AStarPath[m_iAStarPathIndex].x + " , 0.0 , " + m_AStarPath[m_iAStarPathIndex].z + " ) ";

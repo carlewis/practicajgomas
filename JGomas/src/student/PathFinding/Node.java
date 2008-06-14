@@ -4,9 +4,9 @@ import student.BaitLib;
 import es.upv.dsic.gti_ia.jgomas.CTerrainMap;
 
 public class Node {
-	private static CTerrainMap m_Map;
-	private static final float LIN_INC_COST = 1;
-	private static final float DIAG_INC_COST = 1.42f;
+	private CTerrainMap m_Map;
+	private final float LIN_INC_COST = 1;
+	private final float DIAG_INC_COST = 1.42f;
 	private double m_fTargetX;
 	private double m_fTargetZ;
 	private int m_iPosX;
@@ -16,9 +16,14 @@ public class Node {
 	private float m_fFCost;
 	private float m_fHCost;
 	private float m_fTotalCost;
+	private BaitLib m_cBaitLib = null;
 	
-	public static void setMap(CTerrainMap m) {
+	public void setMap(CTerrainMap m) {
 		m_Map = m;
+	}
+	
+	public void setBaitLib(BaitLib cBaitLib) {
+		m_cBaitLib = cBaitLib;
 	}
 	public void setTarget(double px, double pz) {
 		m_fTargetX = px;
@@ -92,6 +97,7 @@ public class Node {
 		for (int i = 0; i < 4; i++) {
 			if (m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i])) {
 				m_Hijos[i] = new Node();
+				m_Hijos[i].setMap(m_Map);
 				m_Hijos[i].setTarget(m_fTargetX, m_fTargetZ);
 				m_Hijos[i].setPosX(getPosX() + incPosX[i]);
 				m_Hijos[i].setPosZ(getPosZ() + incPosZ[i]);
@@ -111,12 +117,18 @@ public class Node {
 				DIAG_INC_COST, DIAG_INC_COST, DIAG_INC_COST, DIAG_INC_COST 
 		};
 		m_Hijos = new Node[8];
+		System.out.println("humm");
 		for (int i = 0; i < 8; i++) {
+			if (m_Map == null) {
+				System.out.println("iteracion " + i);
+			}
 			if (m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i]) &&
-				!BaitLib.IsBattlePoint(
+				!m_cBaitLib.IsBattlePoint(
 						(double) ((getPosX() + incPosX[i]) * 8), 
 						(double) ((getPosZ() + incPosZ[i]) * 8))) {
 				m_Hijos[i] = new Node();
+				m_Hijos[i].setMap(m_Map);
+				m_Hijos[i].setBaitLib(m_cBaitLib);
 				m_Hijos[i].setTarget(m_fTargetX, m_fTargetZ);
 				m_Hijos[i].setPosX(getPosX() + incPosX[i]);
 				m_Hijos[i].setPosZ(getPosZ() + incPosZ[i]);
