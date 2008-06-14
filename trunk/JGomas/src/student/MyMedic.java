@@ -22,6 +22,8 @@ import es.upv.dsic.gti_ia.jgomas.Vector3D;
 
 public class MyMedic extends CMedic {
 	
+	private final boolean DEBUG_MEDIC = false;
+	
 	/**
 	 * 
 	 */
@@ -43,7 +45,7 @@ public class MyMedic extends CMedic {
 	 */
 	protected AID m_TeamLeader = null;
 	/** Estados del medico */
-	protected enum MedicState { NO_STATE, WAIT, WORK };
+	protected enum MedicState { NO_STATE, MOVING, WAIT, WORK }; // GIVE_PACKS
 	/** Estado actual del medico */
 	protected MedicState m_nMedicState = MedicState.NO_STATE;
 	/** Posicion para esperar en el estado WAIT */
@@ -126,27 +128,32 @@ public class MyMedic extends CMedic {
 	 * Genera una tarea goto position. Cuando llega espera al siguiente comando
 	 */
 	public void WaitForCommand() {
-		System.out.println("medico: añadiendo tarea esperar " + CTask.TASK_GOTO_POSITION + " " + 
-				(m_CurrentTask.getPriority() + 1));
 		m_sWaitPosition = " ( " + m_Movement.getPosition().x + " , 0.0 , " + m_Movement.getPosition().z + " ) ";
+		System.out.println("medico1: añadiendo tarea esperar " + CTask.TASK_GOTO_POSITION + " " + 
+				(m_CurrentTask.getPriority() + 1) + " " + m_sWaitPosition);
+		
 		m_nMedicState = MedicState.WAIT;
 		AddTask(CTask.TASK_GOTO_POSITION, getAID(), m_sWaitPosition, m_CurrentTask.getPriority() + 1);
-		System.out.println("medico: " + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority());
 	}
 	/**
-	 * 
+	 * Añade una tarea TASK_WALKING_PATH para ir a un punto
 	 */
 	public void AddTaskGoto(Vector3D point) {
 		System.out.println("añadiendo tarea ir a ( " + point.x + " , " + point.z + " )");
 		// TODO
-		System.out.println("punto " + point.x + " " + point.z);
+		System.out.println(m_Movement.getPosition().x + " " + m_Movement.getPosition().z + 
+				"->" + point.x + " " + point.z);
 		m_AStarPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
 				point.x, point.z);
+		if (m_AStarPath == null)
+			System.out.println("la ruta es nula!");
 		String startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
 		m_iAStarPathIndex = 0;
 		System.out.print(" ( " + m_AStarPath[0].x + " , " + m_AStarPath[0].z + " )->"); 
 		System.out.println(" ( " + m_AStarPath[m_AStarPath.length - 1].x + " , " + m_AStarPath[m_AStarPath.length - 1].z + " )"); 
 		AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
+		if (m_nMedicState == MedicState.NO_STATE)
+			m_nMedicState = MedicState.MOVING;
 		if (m_nMedicState == MedicState.WAIT)
 			m_nMedicState = MedicState.WORK;
 	}
@@ -174,6 +181,12 @@ public class MyMedic extends CMedic {
 			msg.setConversationId("INFORM");
 			msg.setContent(" ( READY ) ");
 			send(msg);
+	}
+	/**
+	 * 
+	 */
+	public void GiveMedicPacks() {
+		super.CreateMedicPack();
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class
@@ -308,6 +321,8 @@ public class MyMedic extends CMedic {
 		if ((m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE) ||
 			(m_CurrentTask.getType() == CTask.TASK_GOTO_POSITION))
 			return true;
+		if ((m_nMedicState == MedicState.WAIT))
+			return true;
 		return false;
 	}  
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -399,15 +414,17 @@ public class MyMedic extends CMedic {
 	 */
 	protected boolean GeneratePath() {
 		
-		for (int iAttempts = 0; iAttempts < 5; iAttempts++) {
+		/*for (int iAttempts = 0; iAttempts < 5; iAttempts++) {
 			m_Movement.CalculateNewDestination(20,20);
 			if ( CheckStaticPosition(m_Movement.getDestination().x, m_Movement.getDestination().z) == true ) {
 				// we must insert a task to go to a new position, so agent will follow previous path
 				String sNewPosition = " ( " + m_Movement.getDestination().x + " , " + m_Movement.getDestination().y + " , " + m_Movement.getDestination().z + " ) "; 
+				System.out.println("medico2: añadiendo tarea esperar " + CTask.TASK_GOTO_POSITION + " " + 
+						(m_CurrentTask.getPriority() + 1) + " " + sNewPosition);
 				AddTask(CTask.TASK_GOTO_POSITION, getAID(), sNewPosition, m_CurrentTask.getPriority() + 1);
 				return true;
 			}
-		}
+		}*/
 		
 		return false;
 	}
@@ -546,17 +563,23 @@ public class MyMedic extends CMedic {
 	 * 
 	 */
 	protected void PerformLookAction() {
-		if ((m_nMedicState == MedicState.WAIT) && (m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE))
+		if ((m_nMedicState == MedicState.WAIT) && (m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE)) {
+			/*System.out.println("medico3: añadiendo tarea esperar " + CTask.TASK_GOTO_POSITION + " " + 
+					(m_CurrentTask.getPriority() + 1) + " " + m_sWaitPosition);*/
 			AddTask(CTask.TASK_GOTO_POSITION, getAID(), m_sWaitPosition, m_CurrentTask.getPriority() + 1);
-		if ((m_AStarPath != null)) {
+		}
+if (DEBUG_MEDIC) {
+	System.out.println("Medico: " + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority());
+}
+		/*if ((m_AStarPath != null)) {
 			System.out.println("->" + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority() + "    " + 
 					m_Movement.getPosition().x + " " + m_Movement.getPosition().z + "     "
 					+ m_AStarPath[m_iAStarPathIndex].x + " " + m_AStarPath[m_iAStarPathIndex].z);
 		}
 		else {
-			//System.out.println("medic ->" + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority());
-		}
-		
+			
+		}*/
+		//System.out.println("medic ->" + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority());
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -586,6 +609,7 @@ public class MyMedic extends CMedic {
 	 */
 	protected boolean checkMedicAction(String _sContent) {
 		// We always go to help
+		System.out.println("Check Medic Action");
 		return ( true );
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -618,7 +642,7 @@ public class MyMedic extends CMedic {
 				System.out.println(getLocalName()+ ": Medic cannot leave Medic Packs");
 			break;
 		case CTask.TASK_WALKING_PATH:
-			System.out.println("medic targetreached TASK_WALKING_PATH " + m_AStarPath.length + " " + m_iAStarPathIndex);
+			System.out.println("medic targetreached TASK_WALKING_PATH " + m_iAStarPathIndex + "/" + (m_AStarPath.length-1));
 			if (m_iAStarPathIndex < m_AStarPath.length - 1) {
 				m_iAStarPathIndex++;
 				String startPos = " ( " + m_AStarPath[m_iAStarPathIndex].x + " , 0.0 , " + 
@@ -626,8 +650,14 @@ public class MyMedic extends CMedic {
 				AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, _CurrentTask.getPriority());
 			} // ya llegamos al final del camino
 			else {
-				// envio un mensaje de sincronizacion al lider.
-				SendReadyMsgToLeader();
+				// cambio al estado de espera
+				if (m_nMedicState == MedicState.MOVING) {
+					///m_nMedicState = MedicState.GIVE_PACKS;
+					m_nMedicState = MedicState.WAIT;
+					m_sWaitPosition = " ( " + m_Movement.getPosition().x + " , 0.0 , " + m_Movement.getPosition().z + " ) ";
+					SendReadyMsgToLeader();
+					super.PerformTargetReached(_CurrentTask);
+				}
 			}	
 			break;
 		case CTask.TASK_GOTO_POSITION:

@@ -6,7 +6,7 @@ import es.upv.dsic.gti_ia.jgomas.CTerrainMap;
 public class Node {
 	private static CTerrainMap m_Map;
 	private static final float LIN_INC_COST = 1;
-	//private static final int DIAG_INC_COST = 14;
+	private static final float DIAG_INC_COST = 1.42f;
 	private double m_fTargetX;
 	private double m_fTargetZ;
 	private int m_iPosX;
@@ -105,10 +105,13 @@ public class Node {
 	}
 	
 	public Node[] getBaitChildren() {
-		int incPosX[] = {+1, 0, -1, 0};
-		int incPosZ[] = {0, +1, 0, -1};
-		m_Hijos = new Node[4];
-		for (int i = 0; i < 4; i++) {
+		int incPosX[] = {+1, 0, -1, 0, +1, +1, -1, -1};
+		int incPosZ[] = {0, +1, 0, -1, +1, -1, +1, -1};
+		float cost[] = {LIN_INC_COST, LIN_INC_COST, LIN_INC_COST, LIN_INC_COST, 
+				DIAG_INC_COST, DIAG_INC_COST, DIAG_INC_COST, DIAG_INC_COST 
+		};
+		m_Hijos = new Node[8];
+		for (int i = 0; i < 8; i++) {
 			if (m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i]) &&
 				!BaitLib.IsBattlePoint(
 						(double) ((getPosX() + incPosX[i]) * 8), 
@@ -117,7 +120,7 @@ public class Node {
 				m_Hijos[i].setTarget(m_fTargetX, m_fTargetZ);
 				m_Hijos[i].setPosX(getPosX() + incPosX[i]);
 				m_Hijos[i].setPosZ(getPosZ() + incPosZ[i]);
-				m_Hijos[i].setFCost(getFCost() + LIN_INC_COST);
+				m_Hijos[i].setFCost(getFCost() + cost[i]);
 				m_Hijos[i].setHCost(calcHCost(m_Hijos[i].getPosX(), m_Hijos[i].getPosZ()));
 				m_Hijos[i].setCost(m_Hijos[i].getFCost() + m_Hijos[i].getHCost());
 				m_Hijos[i].setPadre(this);

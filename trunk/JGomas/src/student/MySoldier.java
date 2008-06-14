@@ -11,7 +11,9 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.StringTokenizer;
 
+import student.MyComponents.BaitCommand;
 import student.MyComponents.BaitRole;
 import student.MyComponents.LeaderMessage;
 import student.MyComponents.AgentType;
@@ -24,11 +26,14 @@ import es.upv.dsic.gti_ia.jgomas.Vector3D;
 
 /**
  * 
- * @version 1.0
+ * @version 1.1
  * @author carlos
  */
 // TODO estrategias de defensa, cancelar estrategia de ataque...
 public class MySoldier extends CSoldier {
+	
+	private final boolean DEBUG_BAIT = false;
+	
 	
 	/**
 	 * 
@@ -75,14 +80,58 @@ public class MySoldier extends CSoldier {
 		MOVE_TEAM, SYNCHRONIZE_TEAM, GOAL_ATTACK};
 	/** Estado actual del lider */
 	protected LeaderState m_nLeaderState = LeaderState.NO_STATE;
-	/** Estados del señuelo */
-	protected enum BaitState { NO_STATE, WAIT, MOVING, ATTACK, WITHDRAW };
-	/** Estado actual del señuelo */
+	protected String m_sBaitTeamPoint;
+	protected String m_sTeamPoint;
+	///////////////////////////////////////////////////////////////////////////
+	/** 
+	 * Estados del señuelo 
+	 */
+	protected enum BaitState { NO_STATE, WAIT, MOVING, ATTACK, WITHDRAW, HOLD };
+	/** 
+	 * Estado actual del señuelo 
+	 */
 	protected BaitState m_nBaitState = BaitState.NO_STATE;
+	/** 
+	 * Numero de disparos que ha recibido el señuelo 
+	 */
+	protected int m_iBaitShots = 0;
+	/**
+	 * Numero de disparos antes de retirarse
+	 */
+	protected final int SHOTS_TO_WITHDRAW = 3;
+	/**
+	 * Punto de retirada del señuelo, donde le espera su equipo
+	 */
+	protected Vector3D m_cWithdrawPoint;
+	/**
+	 * Indice del camino para la tarea TASK_RUN_AWAY
+	 */
+	protected int m_iRunAwayIndex;
+	/**
+	 * Identificador del medico del equipo del señuelo
+	 */
+	protected AID m_cMedicAid;
+	/** 
+	 * Identificador del fieldop del equipo del señuelo
+	 */
+	protected AID m_cFieldOpAid;
+	///////////////////////////////////////////////////////////////////////////
+	/**
+	 * Estados del respaldo del señuelo
+	 */
+	protected enum BaitSoldierState { NO_STATE, WAIT };
+	/**
+	 * Estado actual del respaldo del señuelo
+	 */
+	protected BaitSoldierState m_nBaitSoldierState = BaitSoldierState.NO_STATE;
 	/** */
 	protected boolean m_bBaitPrepared = false;
 	protected boolean m_bBaitFieldOpPrepared = false;
 	protected int m_iTeamAgentPrepared;
+	/**
+	 * Posicion para esperar en el estado WAIT 
+	 */
+	protected String m_sWaitPosition;
 	/**
 	 * setup method
 	 */
@@ -257,7 +306,6 @@ public class MySoldier extends CSoldier {
 			bBaitSoldier = false;
 		ACLMessage msgBait = new ACLMessage(ACLMessage.INFORM);
 		msgBait.setConversationId("ROLE_PROTOCOL");
-		msgBait.setContent(" ( " + MyComponents.BaitRole.BAIT + " ) ");
 		
 		ACLMessage msgBMedic = new ACLMessage(ACLMessage.INFORM);
 		msgBMedic.setConversationId("ROLE_PROTOCOL");
@@ -276,6 +324,7 @@ public class MySoldier extends CSoldier {
 		msgOther.setContent(" ( " + MyComponents.BaitRole.TEAM_SOLDIER + " ) ");
 		// Ahora recorremos la lista de agentes
 		Iterator<AgentInfo> it = m_TeamAgents.iterator();
+		AID cBaitMedic = null, cBaitFieldop = null;
 		while (it.hasNext()) {
 			AgentInfo ai = it.next();
 			// Todavia no hay un señuelo
@@ -288,27 +337,29 @@ public class MySoldier extends CSoldier {
 			if (!bBaitSoldier && (ai.type == AgentType.SOLDIER)) {
 				msgBSoldier.addReceiver(ai.aid);
 				bBaitSoldier = true;
+				ai.role = BaitRole.BAIT_SOLDIER;
 				continue;
 			}
 			if (!bBaitMedic && (ai.type == AgentType.MEDIC)) {
 				msgBMedic.addReceiver(ai.aid);
 				bBaitMedic = true;
+				ai.role = BaitRole.BAIT_MEDIC;
+				cBaitMedic = ai.aid;
 				continue;
 			}
 			if (!bBaitFieldOp && (ai.type == AgentType.FIELDOPS)) {
 				msgBFieldOp.addReceiver(ai.aid);
 				bBaitFieldOp = true;
-				continue;
-			}
-			if (!bBaitSoldier && (ai.type == AgentType.MEDIC)) {
-				msgBSoldier.addReceiver(ai.aid);
-				bBaitSoldier = true;
+				ai.role = BaitRole.BAIT_FIELDOP;
+				cBaitFieldop = ai.aid;
 				continue;
 			}
 			// Resto
 			msgOther.addReceiver(ai.aid);
 		}
-
+		msgBait.setContent(" ( " + MyComponents.BaitRole.BAIT + " , " + cBaitMedic + 
+				" , " + cBaitFieldop + " ) ");
+		
 		send(msgBait);
 		send(msgBMedic);
 		send(msgBFieldOp);
@@ -319,8 +370,10 @@ public class MySoldier extends CSoldier {
 	 * Asigna los umbrales dependiendo del tipo de papel que juega dentro de la estrategia
 	 */
 	protected void SetThresholdValues() {
-		if (m_nAgentRole == BaitRole.BAIT)
+		if (m_nAgentRole == BaitRole.BAIT) {
 			m_Threshold.SetAmmo(10);
+			m_Threshold.SetHealth(10);
+		}
 		//m_Threshold.SetAmmo
 	}
 	
@@ -332,9 +385,17 @@ public class MySoldier extends CSoldier {
 		
 	}
 	protected void SendWaitCommandEverybody() {
+		// TODO SendWaitCommandEverybody
 		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-		for (int i = 0; i < m_TeamAgents.size(); i++)
-			msg.addReceiver(m_TeamAgents.get(i).aid);
+		for (int i = 0; i < m_TeamAgents.size(); i++) {
+			if ((m_TeamAgents.get(i).role != BaitRole.BAIT) &&
+					(m_TeamAgents.get(i).role != BaitRole.BAIT_FIELDOP) &&
+					(m_TeamAgents.get(i).role != BaitRole.BAIT_MEDIC) &&
+					(m_TeamAgents.get(i).role != BaitRole.BAIT_SOLDIER)) {
+				msg.addReceiver(m_TeamAgents.get(i).aid);
+				System.out.println("enviando wait a " + m_TeamAgents.get(i).aid);
+			}
+		}
 		msg.setConversationId("COMMAND");
 		msg.setContent(" ( WAIT ) ");
 		send(msg);
@@ -343,10 +404,12 @@ public class MySoldier extends CSoldier {
 	 * Envia al señuelo y su equipos sus coordenadas
 	 */
 	protected void SendBaitCommandMovement() {
-		// TODO 
+		// TODO SendBaitCommandMovement
+		// Se envia un mensaje al señuelo con su punto de ataque y su punto de retirada
 		ACLMessage msgBaitPoint = new ACLMessage(ACLMessage.INFORM);
+		// Se envia un mensaje al equipo del señuelo con el punto de retirada
 		ACLMessage msgTeamPoint = new ACLMessage(ACLMessage.INFORM);
-		// Selecciona al señuelo
+		// Selecciona los receptores
 		for (int i = 0; i < m_TeamAgents.size(); i++) {
 			if (m_TeamAgents.get(i).role == BaitRole.BAIT)
 				msgBaitPoint.addReceiver(m_TeamAgents.get(i).aid);
@@ -360,10 +423,20 @@ public class MySoldier extends CSoldier {
 		msgTeamPoint.setConversationId("COMMAND");
 		Vector3D cBaitPoint = BaitLib.getBaitAttackPoint();
 		msgBaitPoint.setContent(" ( GOTO , " + cBaitPoint.x + " , 0.0 , " + cBaitPoint.z + " ) ");
-		// TODO indicar al equipo del señuelo un punto diferente
-		msgTeamPoint.setContent(" ( GOTO , " + cBaitPoint.x + " , 0.0 , " + cBaitPoint.z + " ) ");
+		// Se selecciona el punto de retirada
+		Vector3D[] cPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x,
+				m_Movement.getPosition().z, cBaitPoint.x, cBaitPoint.z);
+		if (cPath.length < 6)
+			m_sBaitTeamPoint = cPath[0].x + " , 0.0 , " + cPath[0].z;
+		else
+			m_sBaitTeamPoint = cPath[cPath.length-6].x + " , 0.0 , " + cPath[cPath.length-6].z;
+		msgTeamPoint.setContent(" ( GOTO , " + m_sBaitTeamPoint + " ) ");
+		// Se envian los mensajes
 		send(msgBaitPoint);
 		send(msgTeamPoint);
+		// Punto de retirada
+		msgBaitPoint.setContent(" ( WITHDRAWPOINT , " + m_sBaitTeamPoint + " ) ");
+		send(msgBaitPoint);
 	}
 	/**
 	 * Envia al resto de agentes el comando de movimiento
@@ -374,14 +447,32 @@ public class MySoldier extends CSoldier {
 		//ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 		// Selecciona al señuelo
 		for (int i = 0; i < m_TeamAgents.size(); i++) {
-			if (m_TeamAgents.get(i).role == BaitRole.TEAM_SOLDIER)
+			if ((m_TeamAgents.get(i).role != BaitRole.BAIT) &&
+					(m_TeamAgents.get(i).role != BaitRole.BAIT_FIELDOP) &&
+					(m_TeamAgents.get(i).role != BaitRole.BAIT_MEDIC) &&
+					(m_TeamAgents.get(i).role != BaitRole.BAIT_SOLDIER))
 				msgTeamPoint.addReceiver(m_TeamAgents.get(i).aid);
 			// else if ...
 		}
 		msgTeamPoint.setConversationId("COMMAND");
+		// Punto final
 		Vector3D cTeamPoint = BaitLib.getAttackPoint();
-		msgTeamPoint.setContent(" ( GOTO , " + cTeamPoint.x + " , 0.0 , " + cTeamPoint.z + " ) ");
+		// Ruta hasta el punto
+		m_AStarPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x,
+				m_Movement.getPosition().z, cTeamPoint.x, cTeamPoint.z);
+		if (m_AStarPath.length < 6)
+			m_sTeamPoint = m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z;
+		else
+			m_sTeamPoint = m_AStarPath[m_AStarPath.length-6].x + " , 0.0 , " + m_AStarPath[m_AStarPath.length-6].z;
+		m_AStarPath = PathFindingSolver.FindBaitPath(
+				m_Movement.getPosition().x,	m_Movement.getPosition().z, 
+				m_AStarPath[m_AStarPath.length-6].x, m_AStarPath[m_AStarPath.length-6].z);
+		msgTeamPoint.setContent(" ( GOTO , " + m_sTeamPoint + " ) ");
 		send(msgTeamPoint);
+		//
+		String startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
+		m_iAStarPathIndex = 0;
+		AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
 	}
 	/**
 	 * 
@@ -397,9 +488,11 @@ public class MySoldier extends CSoldier {
 	 * Genera una tarea goto position. Cuando llega espera al siguiente comando
 	 */
 	public void WaitForCommand() {
-		System.out.println("añadiendo tarea esperar");
-		String startPos = " ( " + m_Movement.getPosition().x + " , 0.0 , " + m_Movement.getPosition().z + " ) ";
-		AddTask(CTask.TASK_GOTO_POSITION, getAID(), startPos, m_CurrentTask.getPriority() + 1);
+		System.out.println("soldier: añadiendo tarea esperar");
+		m_sWaitPosition = " ( " + m_Movement.getPosition().x + " , 0.0 , " + m_Movement.getPosition().z + " ) ";
+		AddTask(CTask.TASK_GOTO_POSITION, getAID(), m_sWaitPosition, m_CurrentTask.getPriority() + 1);
+		if (m_nAgentRole == BaitRole.BAIT_SOLDIER)
+			m_nBaitSoldierState = BaitSoldierState.WAIT;
 	}
 	/**
 	 * 
@@ -409,6 +502,8 @@ public class MySoldier extends CSoldier {
 		// TODO
 		m_AStarPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
 				point.x, point.z);
+		if (m_AStarPath == null)
+			System.out.println("soldier: la ruta es nula");
 		String startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
 		m_iAStarPathIndex = 0;
 		System.out.print(" ( " + m_AStarPath[0].x + " , " + m_AStarPath[0].z + " )->"); 
@@ -428,10 +523,62 @@ public class MySoldier extends CSoldier {
 					m_bBaitPrepared = true;
 				else if (m_TeamAgents.get(i).role == BaitRole.BAIT_FIELDOP)
 					m_bBaitFieldOpPrepared = true;
+				else if (m_TeamAgents.get(i).role == BaitRole.BAIT_MEDIC) { 
+					
+				}
 				else if (m_TeamAgents.get(i).role == BaitRole.TEAM_SOLDIER)
 					m_iTeamAgentPrepared--;
 			}
 		}
+	}
+	/**
+	 * 
+	 * @param point
+	 */
+	public void SetWithdrawPoint(Vector3D point) {
+		m_cWithdrawPoint = point;
+	}
+	/**
+	 * 
+	 */
+	public void SetAgentTeamNames(String medic) {
+		StringTokenizer tokens = new StringTokenizer(medic);
+		tokens.nextToken(); // Quita el (
+		tokens.nextToken(); // Quita el primer parametro
+		tokens.nextToken(); // Quita la coma
+		String sContentAID = tokens.nextToken();
+		sContentAID = sContentAID + tokens.nextToken("))") + "))";
+		for (AgentInfo ai: m_TeamAgents) {
+			if (ai.aid.toString().equals(sContentAID)) {
+				SetAgentMedic(ai.aid);
+				break;
+			}
+		}
+		tokens.nextToken(" "); // Quita los parentesis
+		tokens.nextToken(); // Quita la segunda coma
+		sContentAID = tokens.nextToken();
+		System.out.println(sContentAID);
+		sContentAID = sContentAID + tokens.nextToken("))") + "))"; 
+				for (AgentInfo ai: m_TeamAgents) {
+			if (ai.aid.toString().equals(sContentAID)) {
+				SetAgentFieldOp(ai.aid);
+				break;
+			}
+		}
+	}
+	/**
+	 * 
+	 * @param medic
+	 */
+	public void SetAgentMedic(AID medic) {
+		m_cMedicAid = medic;
+	}
+	/**
+	 * 
+	 * @param medic
+	 */
+	public void SetAgentFieldOp(AID fieldop) {
+		m_cFieldOpAid = fieldop;
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class
@@ -506,7 +653,12 @@ public class MySoldier extends CSoldier {
 	 *    
 	 */
 	protected void CallForAmmo() {
-		
+		// aqui ya se cambia a estado withdraw
+		if (m_nAgentRole == BaitRole.BAIT) {
+			m_nBaitState = BaitState.WITHDRAW;
+			m_iRunAwayIndex = m_AStarPath.length - 1;
+		}
+		System.out.println("call for ammo");
 		super.CallForAmmo();
 
 	}
@@ -528,7 +680,7 @@ public class MySoldier extends CSoldier {
 	 */
 	protected void CallForBackup() {
 		
-
+		System.out.println("call for backup");
 		super.CallForBackup();
 
 	}
@@ -547,7 +699,9 @@ public class MySoldier extends CSoldier {
 	 *    
 	 */
 	protected void UpdateTargets() {
-		//System.out.println("UpdateTargets");
+		/*if (m_nAgentRole == BaitRole.BAIT) {
+			System.out.println("señuelo actualizando tareas ");
+		}*/
 	} 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -565,16 +719,16 @@ public class MySoldier extends CSoldier {
 	 * 
 	 */
 	protected boolean ShouldUpdateTargets() { 
+		// TODO ShouldUpdateTargets
 		if (m_nAgentRole == BaitRole.BAIT) { 
-			if (m_nBaitState == BaitState.ATTACK) {
+			if (m_nBaitState == BaitState.ATTACK) 
 				return true;
-			}
+			if (m_nBaitState == BaitState.WITHDRAW)
+				return true;
 		}
 		if ((m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE) ||
 				(m_CurrentTask.getType() == CTask.TASK_GOTO_POSITION))
 			return true;
-
-
 		return false; 
 	}  
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -737,7 +891,23 @@ public class MySoldier extends CSoldier {
 	 *   
 	 */
 	protected void PerformInjuryAction() {
-		System.out.println("Ah me disparan!");
+		if (m_nAgentRole == BaitRole.BAIT) {
+			m_iBaitShots++;
+			if (m_iBaitShots >= SHOTS_TO_WITHDRAW) {
+				if (m_nBaitState != BaitState.WITHDRAW) {
+					m_nBaitState = BaitState.WITHDRAW;
+					m_iRunAwayIndex = m_AStarPath.length - 1;
+				}
+				String sPosition = " ( " + m_AStarPath[m_iRunAwayIndex].x + " , 0.0 , " + 
+				m_AStarPath[m_iRunAwayIndex].z + " ) "; 
+				SendReadyMsgToLeader();
+				AddTask(CTask.TASK_RUN_AWAY, getAID(), sPosition, m_CurrentTask.getPriority() + 1);	
+				System.out.println("retirada!" + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority());
+				
+			}
+			System.out.println("Ah me disparan! " + GetHealth());
+		}
+		
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	
@@ -753,10 +923,17 @@ public class MySoldier extends CSoldier {
 	 *   
 	 */
 	protected void PerformThresholdAction() {
-		
-		GenerateEscapePosition();
+		System.out.println("threshold action");
+		/*GenerateEscapePosition();
 		String sNewPosition = " ( " + m_Movement.getDestination().x + " , " + m_Movement.getDestination().y + " , " + m_Movement.getDestination().z + " ) "; 
-		AddTask(CTask.TASK_RUN_AWAY, getAID(), sNewPosition, m_CurrentTask.getPriority() + 1);
+		AddTask(CTask.TASK_RUN_AWAY, getAID(), sNewPosition, m_CurrentTask.getPriority() + 1);*/
+		if (m_iBaitShots == SHOTS_TO_WITHDRAW) {
+			m_nBaitState = BaitState.WITHDRAW;
+			m_iRunAwayIndex = m_AStarPath.length - 1;
+			String sPosition = " ( " + m_AStarPath[m_iRunAwayIndex].x + " , 0.0 , " + 
+			m_AStarPath[m_iRunAwayIndex].z + " ) "; 
+			AddTask(CTask.TASK_RUN_AWAY, getAID(), sPosition, m_CurrentTask.getPriority() + 1);		
+		}
 		
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -777,6 +954,7 @@ public class MySoldier extends CSoldier {
 	 */
 	@SuppressWarnings("unchecked")
 	protected boolean GetAgentToAim() {
+		// TODO
 		if ( m_FOVObjects.isEmpty() ) {
 			m_AimedAgent = null;
 			return false;
@@ -796,7 +974,22 @@ public class MySoldier extends CSoldier {
 			
 			m_AimedAgent = s;
 			
-			if (m_nAgentRole != BaitRole.BAIT)
+			if (m_nAgentRole == BaitRole.BAIT) {
+				if (m_nBaitState == BaitState.ATTACK) {
+					return true;
+				}
+				else {
+					m_AimedAgent = null;
+					return false;
+				}
+			}
+			if ((m_nAgentRole == BaitRole.BAIT_SOLDIER) || 
+				(m_nAgentRole == BaitRole.BAIT_FIELDOP) ||
+				(m_nAgentRole == BaitRole.BAIT_MEDIC)) {
+				// TODO Hay que devolver true o false dependiendo de si estan esperando
+				// al señuelo o ya están atacando
+				return false;
+			}
 			return true; 
 		}
 		m_AimedAgent = null;
@@ -828,25 +1021,20 @@ public class MySoldier extends CSoldier {
 			case MOVE_BAIT:
 				// Enviar orden de movimiento al señuelo
 				SendBaitCommandMovement();
+				SendCommandMovement();
 				m_nLeaderState = LeaderState.SYNCHRONIZE_BAIT;
 				break;
 			case SYNCHRONIZE_BAIT: 
 				// Esperar a recibir el mensaje del señuelo
-				// Mensaje del señuelo
 				if (m_bBaitPrepared) { 
 					System.out.println("El señuelo ha llegado, vamos!");
 					m_nLeaderState = LeaderState.SYNCHRONIZE_TEAM;
 					// Ordena el movimiento del resto del equipo (el señuelo ya esta atacando)
-					m_iTeamAgentPrepared = m_iTeamSize - 4; 
-					System.out.println("Tiene que haber " + m_iTeamAgentPrepared + " agentes ");
-					SendCommandMovement();
+					m_iTeamAgentPrepared = m_iTeamSize - 4;
+					// TODO Implementar la funcion sendcommandattack
+					// SendCommandAttack()
 					// movimiento para mi mismo
-					Vector3D cTeamPoint = BaitLib.getAttackPoint();
-					m_AStarPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
-							cTeamPoint.x, cTeamPoint.z);
-					String startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
-					m_iAStarPathIndex = 0;
-					AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
+					
 				}
 				break;
 			case SYNCHRONIZE_TEAM:
@@ -863,30 +1051,53 @@ public class MySoldier extends CSoldier {
 				
 				break;
 			}
+			//System.out.println("Soy el lider: estoy en " + m_Movement.getPosition().x + " " + m_Movement.getPosition().z);
 		}
-		
-		if (m_nAgentRole == BaitRole.BAIT) {
+		else if (m_nAgentRole == BaitRole.BAIT) {
 			switch (m_nBaitState) {
 			case WAIT:
 				// Se cambia cuando llega el mensaje del lider
 				break;
 			case MOVING:
-				// Cambia cuando llega al destino
+if (DEBUG_BAIT) {
+	System.out.println("Bait (moving): " + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority());
+}
 				break;
 			case ATTACK:
 				// Ataca hasta que se superan los umbrales de armas o salud
-				System.out.println("bait attack: " + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority());
-				if (m_CurrentTask.getType() == CTask.TASK_WALKING_PATH) {
-					String pos = " ( " + m_Movement.getDestination().x + " , 0.0 , " + 
+if (DEBUG_BAIT) {
+	System.out.println("Bait (attack): " + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority());
+}
+				if ((m_CurrentTask.getType() == CTask.TASK_WALKING_PATH) || 
+						(m_CurrentTask.getType() == CTask.TASK_GOTO_POSITION)) {
+					/*String pos = " ( " + m_Movement.getDestination().x + " , 0.0 , " + 
 					m_Movement.getDestination().z + " ) ";
-					//TODO porque no inserta la tarea TASK_GET_OBJECTIVE?
-					//SetUpPriorities();
 					AddTask(CTask.TASK_GET_OBJECTIVE, getAID(), pos, m_CurrentTask.getPriority() + 1);
-					
+					*/
+					String pos = " ( " + m_Movement.getPosition().x + " , 0.0 , " + 
+					m_Movement.getPosition().z + " ) ";
+					AddTask(CTask.TASK_GOTO_POSITION, getAID(), pos, m_CurrentTask.getPriority() + 1);
 				}
 				break;
 			case WITHDRAW:
 				// Retirada
+if (DEBUG_BAIT) {
+	System.out.println("Retirada con tarea " + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority() + 
+		"[" + m_iRunAwayIndex + "]");
+}
+				// (m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE)
+				String sPosition = " ( " + m_AStarPath[m_iRunAwayIndex].x + " , 0.0 , " + 
+				m_AStarPath[m_iRunAwayIndex].z + " ) "; 
+				if (m_CurrentTask.getType() == CTask.TASK_RUN_AWAY)
+					AddTask(CTask.TASK_RUN_AWAY, getAID(), sPosition, m_CurrentTask.getPriority());
+				else
+					AddTask(CTask.TASK_RUN_AWAY, getAID(), sPosition, m_CurrentTask.getPriority() + 1);
+				break;
+			case HOLD:
+if (DEBUG_BAIT) {
+	System.out.println("Bait (hold) " + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority() + 
+		"[" + m_iRunAwayIndex + "]");
+}
 				break;
 			}
 			/*if (m_AStarPath != null) {
@@ -894,6 +1105,18 @@ public class MySoldier extends CSoldier {
 					m_Movement.getPosition().x + " " + m_Movement.getPosition().z + "     "
 					+ m_AStarPath[m_iAStarPathIndex].x + " " + m_AStarPath[m_iAStarPathIndex].z);
 			}*/
+		}
+		else if (m_nAgentRole == BaitRole.BAIT_SOLDIER){
+			if ((m_nBaitSoldierState == BaitSoldierState.WAIT) && 
+					(m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE)) {
+				AddTask(CTask.TASK_GOTO_POSITION, getAID(), m_sWaitPosition, m_CurrentTask.getPriority() + 1);
+			}
+		/*	System.out.println("Soy el respaldo del señuelo. estoy en " + m_Movement.getPosition().x + " " + 
+					m_Movement.getPosition().z);*/
+		}
+		else {
+			/*System.out.println("Soy otro agente. estoy en " + m_Movement.getPosition().x + " " + 
+					m_Movement.getPosition().z);*/
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -950,11 +1173,29 @@ public class MySoldier extends CSoldier {
 			//
 			break;
 		case CTask.TASK_GOTO_POSITION:
-			System.out.println("targetReached goto position");
+			//System.out.println("targetReached goto position");
+			break;
+		case CTask.TASK_RUN_AWAY:
+			if (m_nAgentRole == BaitRole.BAIT){
+				if (m_iRunAwayIndex > m_AStarPath.length - 6) {
+					m_iRunAwayIndex--;
+					if (m_iRunAwayIndex == m_AStarPath.length - 6) {
+						// enviar un mensaje al medico y al fieldop para que dejen los packs
+						ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+						msg.setContent(" ( " + BaitCommand.GIVE_PACKS + " ) ");
+						msg.addReceiver(m_cMedicAid);
+						msg.addReceiver(m_cFieldOpAid);
+						msg.setConversationId("COMMAND");
+						send(msg);
+					}
+				}
+				else
+					m_nBaitState = BaitState.HOLD;
+			}
 			break;
 		default:
 			super.PerformTargetReached(_CurrentTask);
-			break;
+		break;
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////

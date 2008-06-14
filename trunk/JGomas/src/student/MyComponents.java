@@ -28,11 +28,11 @@ public class MyComponents {
 	/**
 	 * 
 	 */
-	public enum BaitMessage { READY };
+	public enum BaitMessage { READY, MEDIC };
 	/**
 	 * 
 	 */
-	public enum BaitCommand { GOTO, WAIT};
+	public enum BaitCommand { GOTO, WAIT, WITHDRAWPOINT, GIVE_PACKS };
 	/**
 	 * 
 	 * @param t: string
@@ -66,11 +66,14 @@ public class MyComponents {
 	public static BaitCommand parseBaitCommand(String t) {
 		if (t.equals("GOTO")) return BaitCommand.GOTO;
 		if (t.equals("WAIT")) return BaitCommand.WAIT;
+		if (t.equals("WITHDRAWPOINT")) return BaitCommand.WITHDRAWPOINT;
+		if (t.equals("GIVE_PACKS")) return BaitCommand.GIVE_PACKS;
 		return BaitCommand.WAIT;
 	}
 	
 	public static BaitMessage parseBaitMessage(String t) {
 		if (t.equals("READY")) return BaitMessage.READY;
+		if (t.equals("MEDIC")) return BaitMessage.MEDIC;
 		return BaitMessage.READY;
 	}
 	

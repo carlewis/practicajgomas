@@ -3,18 +3,18 @@ Duration: [10m:0s]
 
 Statistics for ALLIED TEAM
 	-GENERAL:
-		* Alive:       	1
-		* Avrg. Health:	94.0
+		* Alive:       	8
+		* Avrg. Health:	100.0
 
 	-OBJECTIVE:
-		* Times Taken: 	1
+		* Times Taken: 	0
 		* Times Lost:  	0
 
 	-SHOTS:
-		* EnemyHit:    	67
+		* EnemyHit:    	0
 		* TeamHit:     	0
-		* FailedHit:   	5
-		* TOTAL:       	72
+		* FailedHit:   	0
+		* TOTAL:       	0
 
 	-MEDIC PACKS:
 		* Delivered:   	0
@@ -31,7 +31,7 @@ Statistics for ALLIED TEAM
 	-EFICIENCY:
 		* Medic:       	0.0
 		* FieldOps:    	0.0
-		* Army:        	1.0
+		* Army:        	0.0
 
 	-ANTI-EFICIENCY:
 		* Medic:       	0.0
@@ -41,18 +41,18 @@ Statistics for ALLIED TEAM
 
 Statistics for AXIS TEAM
 	-GENERAL:
-		* Alive:       	0
-		* Avrg. Health:	0.0
+		* Alive:       	9
+		* Avrg. Health:	100.0
 
 	-OBJECTIVE:
 		* Times Taken: 	0
-		* Times Lost:  	1
+		* Times Lost:  	0
 
 	-SHOTS:
-		* EnemyHit:    	133
-		* TeamHit:     	2
-		* FailedHit:   	8
-		* TOTAL:       	143
+		* EnemyHit:    	0
+		* TeamHit:     	0
+		* FailedHit:   	0
+		* TOTAL:       	0
 
 	-MEDIC PACKS:
 		* Delivered:   	0
@@ -69,7 +69,7 @@ Statistics for AXIS TEAM
 	-EFICIENCY:
 		* Medic:       	0.0
 		* FieldOps:    	0.0
-		* Army:        	0.993006993006993
+		* Army:        	0.0
 
 	-ANTI-EFICIENCY:
 		* Medic:       	0.0
