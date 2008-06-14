@@ -51,6 +51,10 @@ public class SoldierComm extends Communication {
 		if (ContentsToCommand(s) == BaitCommand.WAIT) {
 			m_cSoldier.WaitForCommand();
 		}
+		if (ContentsToCommand(s) == BaitCommand.WITHDRAWPOINT) {
+			//
+			m_cSoldier.SetWithdrawPoint(ContentsToCommandPoint(s));
+		}
 		//m_cSoldier.
 	}
 	/** 
@@ -127,8 +131,10 @@ public class SoldierComm extends Communication {
 				// Hay que ver el papel que nos ha dado el lider
 				BaitRole role = ContentsToBaitRole(msgLO.getContent());
 				m_cSoldier.setAgentRole(role);
-				if (role == BaitRole.BAIT) 
+				if (role == BaitRole.BAIT) {
 					System.out.println(m_cSoldier.getName() + " yo soy el puteado");
+					m_cSoldier.SetAgentTeamNames(msgLO.getContent());
+				}
 				else if (role == BaitRole.BAIT_SOLDIER) 
 					System.out.println(m_cSoldier.getName() + " yo soy el que respalda al puteado");
 				// Una vez sabemos el papel que jugamos modificamos los umbrales
@@ -136,10 +142,8 @@ public class SoldierComm extends Communication {
 			}
 			else if (msgLO.getConversationId() == "INFORM") {
 				// indica al lider que el emisor esta preparado (si es un mensaje ready)
-				if (ContentsToMessage(msgLO.getContent()) == BaitMessage.READY) {
-					System.out.println("llega");
+				if (ContentsToMessage(msgLO.getContent()) == BaitMessage.READY) 
 					m_cSoldier.SetAgentPrepared(msgLO.getSender());
-				}
 			}
 			else if (msgLO.getConversationId() == "COMMAND") {
 				ExecuteCommand(msgLO.getContent());

@@ -2,17 +2,13 @@ package student;
 
 
 import jade.core.AID;
-import jade.core.behaviours.*;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
-import jade.lang.acl.MessageTemplate;
-
 import java.util.Iterator;
-import java.util.StringTokenizer;
 
 import student.MyComponents.BaitRole;
 import student.PathFinding.PathFindingSolver;
@@ -25,6 +21,8 @@ import es.upv.dsic.gti_ia.jgomas.*;
  * @author carlos
  */
 public class MyFieldOps extends CFieldOps {
+	
+	private final boolean DEBUG_FIELDOP = false;
 	
 	/**
 	 * 
@@ -43,6 +41,18 @@ public class MyFieldOps extends CFieldOps {
 	 * Rol dentro de la estrategia del señuelo
 	 */
 	protected MyComponents.BaitRole m_nAgentRole;
+	/**
+	 * AID del lider del grupo
+	 */
+	protected AID m_TeamLeader = null;
+	/**
+	 * Posicion para esperar en el estado WAIT 
+	 */
+	protected String m_sWaitPosition;
+	/** Estados del fieldops */
+	protected enum FieldOpState { NO_STATE, MOVING, WAIT, WORK };
+	/** Estado actual del fieldops */
+	protected FieldOpState m_nFieldOpState = FieldOpState.NO_STATE;
 	
 	protected void setup() {
 	
@@ -102,7 +112,9 @@ public class MyFieldOps extends CFieldOps {
 	}
 	
 	private void LaunchCommunicationsBehaviour() {
-		addBehaviour(new CyclicBehaviour() {
+		addBehaviour(new FieldOpComm(this));
+	}		
+		/*new CyclicBehaviour() {
 			private static final long serialVersionUID = 1L;
 
 			private MyComponents.AgentType ContentsToAgentType(String s) {
@@ -139,9 +151,82 @@ public class MyFieldOps extends CFieldOps {
 			}
 		});
 		
+	}*/
+	/**
+	 * @param aid
+	 */
+	public void setTeamLeader(AID aid) {
+		m_TeamLeader = aid;
 	}
-	
-		
+	/**
+	 * Genera una tarea goto position. Cuando llega espera al siguiente comando
+	 */
+	public void WaitForCommand() {
+		System.out.println("fieldops: añadiendo tarea esperar " + CTask.TASK_GOTO_POSITION + " " + 
+				(m_CurrentTask.getPriority() + 1));
+		m_sWaitPosition = " ( " + m_Movement.getPosition().x + " , 0.0 , " + m_Movement.getPosition().z + " ) ";
+		m_nFieldOpState = FieldOpState.WAIT;
+		AddTask(CTask.TASK_GOTO_POSITION, getAID(), m_sWaitPosition, m_CurrentTask.getPriority() + 1);
+		System.out.println("fieldops: " + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority());
+	}
+	/**
+	 * Añade una tarea TASK_WALKING_PATH para ir a un punto
+	 */
+	public void AddTaskGoto(Vector3D point) {
+		System.out.println("añadiendo tarea ir a ( " + point.x + " , " + point.z + " )");
+		// TODO
+		System.out.println("punto " + point.x + " " + point.z);
+		m_AStarPath = PathFindingSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
+				point.x, point.z);
+		if (m_AStarPath == null)
+			System.out.println("fieldops: la ruta es null");
+		String startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
+		m_iAStarPathIndex = 0;
+		System.out.print(" ( " + m_AStarPath[0].x + " , " + m_AStarPath[0].z + " )->"); 
+		System.out.println(" ( " + m_AStarPath[m_AStarPath.length - 1].x + " , " + m_AStarPath[m_AStarPath.length - 1].z + " )"); 
+		AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
+		m_nFieldOpState = FieldOpState.MOVING;
+	}	
+	/**
+	 * 
+	 * @param ai
+	 */
+	public void AddAgent(AgentInfo ai) {
+	/*	if (ai.type == AgentType.SOLDIER)
+			m_iTeamSoldiersCount++;
+		m_TeamAgents.add(ai);*/
+	}
+	/**
+	 * 
+	 * @param role
+	 */
+	public void setAgentRole(BaitRole role) {
+		m_nAgentRole = role;
+	}
+	/**
+	 * Asigna los umbrales dependiendo del tipo de papel que juega dentro de la estrategia
+	 */
+	protected void SetThresholdValues() {
+		if (m_nAgentRole == BaitRole.BAIT)
+			m_Threshold.SetAmmo(10);
+		//m_Threshold.SetAmmo
+	}
+	/**
+	 * 
+	 */
+	protected void SendReadyMsgToLeader() {
+			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+			msg.addReceiver(m_TeamLeader);
+			msg.setConversationId("INFORM");
+			msg.setContent(" ( READY ) ");
+			send(msg);
+	}
+	/**
+	 * 
+	 */
+	public void GiveAmmoPacks() {
+		CreateAmmoPack();
+	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Methods to overload inhereted from CTroop class
 	//
@@ -271,7 +356,12 @@ public class MyFieldOps extends CFieldOps {
 	 * @return <tt> FALSE</tt> 
 	 * 
 	 */
-	protected boolean ShouldUpdateTargets() { return false; }  
+	protected boolean ShouldUpdateTargets() {
+		if ((m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE) ||
+				(m_CurrentTask.getType() == CTask.TASK_GOTO_POSITION))
+				return true;
+		return false; 
+	}  
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -486,6 +576,12 @@ public class MyFieldOps extends CFieldOps {
 				continue;
 			
 			m_AimedAgent = s;
+			if (m_nAgentRole == BaitRole.BAIT_FIELDOP) {
+					// TODO Hay que devolver true o false dependiendo de si estan esperando
+					// al señuelo o ya están atacando
+					return false;
+			}
+			System.out.println("veo un tio");
 			return true; 
 		}
 		m_AimedAgent = null;
@@ -503,19 +599,15 @@ public class MyFieldOps extends CFieldOps {
 	 * 
 	 */
 	protected void PerformLookAction() {
-	/*	try {
-			DFAgentDescription dfd = new DFAgentDescription();
-			ServiceDescription sd = new ServiceDescription();
-			sd.setType("RespondLookOut");
-			dfd.addServices(sd);
-			//DFAgentDescription[] result = DFService.search(this, dfd);
-			// Al no poner nada en el dfd en result estan todos los agentes 
-			// de los dos equipos
-
-			
-		} catch (FIPAException e) {
-			
-		}*/
+if (DEBUG_FIELDOP) {
+if (m_nAgentRole == BaitRole.BAIT_FIELDOP)
+	System.out.println("Fieldop: " + m_CurrentTask.getType() + " " + 
+	m_CurrentTask.getPriority() + " (" + m_Movement.getPosition().x + "," + 
+	m_Movement.getPosition().z + ")" + m_Movement.getDestination().x + "-" + 
+	m_Movement.getDestination().z + "   " + m_iAStarPathIndex);
+}
+		if ((m_nFieldOpState == FieldOpState.WAIT) && (m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE))
+			AddTask(CTask.TASK_GOTO_POSITION, getAID(), m_sWaitPosition, m_CurrentTask.getPriority() + 1);
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -548,8 +640,29 @@ public class MyFieldOps extends CFieldOps {
 			else
 				System.out.println(getLocalName()+ ": Medic cannot leave Medic Packs");
 			break;
+		case CTask.TASK_WALKING_PATH:
+			System.out.println("fieldops targetreached TASK_WALKING_PATH " + m_iAStarPathIndex + "/" + (m_AStarPath.length-1));
+			if (m_iAStarPathIndex < m_AStarPath.length - 1) {
+				m_iAStarPathIndex++;
+				String startPos = " ( " + m_AStarPath[m_iAStarPathIndex].x + " , 0.0 , " + 
+					m_AStarPath[m_iAStarPathIndex].z + " ) ";
+				AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, _CurrentTask.getPriority());
+			} // ya llegamos al final del camino
+			else {
+				// envio un mensaje de sincronizacion al lider.
+				if (m_nFieldOpState == FieldOpState.MOVING) {
+					SendReadyMsgToLeader();
+					m_nFieldOpState = FieldOpState.WAIT;
+					m_sWaitPosition = " ( " + m_Movement.getPosition().x + " , 0.0 , " + m_Movement.getPosition().z + " ) ";
+				}
+				super.PerformTargetReached(_CurrentTask);
+			}	
+			break;
+		case CTask.TASK_GOTO_POSITION:
+			break;
 			
 		default:
+			System.out.println("otro target reached");
 			super.PerformTargetReached(_CurrentTask);
 			break;
 		}

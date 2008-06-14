@@ -12,29 +12,29 @@ import student.MyComponents.BaitRole;
 import student.MyComponents.LeaderMessage;
 
 @SuppressWarnings("serial")
-public class MedicComm extends Communication {
+public class FieldOpComm extends Communication {
 	/** Puntero al agente */
-	private MyMedic m_cMedic = null;
+	private MyFieldOps m_cFieldOp = null;
 	
-	public MedicComm(MyMedic cMedic) {
-		m_cMedic = cMedic;
+	public FieldOpComm(MyFieldOps cFieldOp) {
+		m_cFieldOp = cFieldOp;
 	}
 	
 	private void ExecuteCommand(String s) {
 		// Se separa el comando y los contenidos
-		System.out.println("ejecutar comando " + s);
+		System.out.println("fielops: ejecutar comando " + s);
 		if (ContentsToCommand(s) == BaitCommand.GOTO) {
 			// Sacamos la direccion del mensaje
 			Vector3D point = ContentsToCommandPoint(s);
 			// Se llama al metodo que sea del objeto m_cMedic
-			m_cMedic.AddTaskGoto(point);
+			m_cFieldOp.AddTaskGoto(point);
 			// TODO El metodo lanza una tarea AddTask para ir al sitio. 	
 		}
 		if (ContentsToCommand(s) == BaitCommand.WAIT) {
-			m_cMedic.WaitForCommand();
+			m_cFieldOp.WaitForCommand();
 		}
 		if (ContentsToCommand(s) == BaitCommand.GIVE_PACKS) {
-			m_cMedic.GiveMedicPacks();
+			m_cFieldOp.GiveAmmoPacks();
 		}
 	}
 	/** 
@@ -43,32 +43,32 @@ public class MedicComm extends Communication {
 	public void action() {
 		MessageTemplate template = MessageTemplate.MatchAll();
 		// recibir un mensaje
-		ACLMessage msgLO = m_cMedic.receive(template);
+		ACLMessage msgLO = m_cFieldOp.receive(template);
 		if (msgLO != null) {
 			// Mensaje para enlazarse con los otros agentes
 			if (msgLO.getConversationId() == "COMM_SUBSCRIPTION") {
 				// 
 				AID cSender = msgLO.getSender();
 				AgentType at = ContentsToAgentType(msgLO.getContent());
-				m_cMedic.AddAgent(new AgentInfo(at, cSender));
+				m_cFieldOp.AddAgent(new AgentInfo(at, cSender));
 			}
 			else if (msgLO.getConversationId() == "LEADER_PROTOCOL") {
 				// Recepcion mensajes lider
 				LeaderMessage nType = GetLeaderMessageType(msgLO.getContent());
 				if (nType == LeaderMessage.FINAL_LEADER) {
-					m_cMedic.setTeamLeader(msgLO.getSender());
+					m_cFieldOp.setTeamLeader(msgLO.getSender());
 				}
 			}
 			else if (msgLO.getConversationId() == "ROLE_PROTOCOL") {
 				// Hay que ver el papel que nos ha dado el lider
 				BaitRole role = ContentsToBaitRole(msgLO.getContent());
-				m_cMedic.setAgentRole(role);
+				m_cFieldOp.setAgentRole(role);
 				if (ContentsToBaitRole(msgLO.getContent()) == BaitRole.BAIT_MEDIC) {
 					// TODO Caracteristicas propias del medico del señuelo
-					System.out.println(m_cMedic.getName() + " yo soy el medico del puteado");
+					System.out.println(m_cFieldOp.getName() + " yo soy el medico del puteado");
 				}
 				// Una vez sabemos el papel que jugamos modificamos los umbrales
-				m_cMedic.SetThresholdValues();
+				m_cFieldOp.SetThresholdValues();
 			}
 			else if (msgLO.getConversationId() == "INFORM") {
 				
