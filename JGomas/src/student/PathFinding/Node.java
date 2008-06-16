@@ -7,6 +7,7 @@ public class Node {
 	private CTerrainMap m_Map;
 	private final float LIN_INC_COST = 1;
 	private final float DIAG_INC_COST = 1.42f;
+	private final float BATTLE_ZONE_COST = 50.0f;
 	private double m_fTargetX;
 	private double m_fTargetZ;
 	private int m_iPosX;
@@ -91,8 +92,11 @@ public class Node {
 	}
 	
 	public Node[] getChildren() {
-		int incPosX[] = {+1, 0, -1, 0};
-		int incPosZ[] = {0, +1, 0, -1};
+		int incPosX[] = {+1, 0, -1, 0, +1, +1, -1, -1};
+		int incPosZ[] = {0, +1, 0, -1, +1, -1, +1, -1};
+		float cost[] = {LIN_INC_COST, LIN_INC_COST, LIN_INC_COST, LIN_INC_COST, 
+				DIAG_INC_COST, DIAG_INC_COST, DIAG_INC_COST, DIAG_INC_COST 
+		};
 		m_Hijos = new Node[4];
 		for (int i = 0; i < 4; i++) {
 			if (m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i])) {
@@ -101,7 +105,7 @@ public class Node {
 				m_Hijos[i].setTarget(m_fTargetX, m_fTargetZ);
 				m_Hijos[i].setPosX(getPosX() + incPosX[i]);
 				m_Hijos[i].setPosZ(getPosZ() + incPosZ[i]);
-				m_Hijos[i].setFCost(getFCost() + LIN_INC_COST);
+				m_Hijos[i].setFCost(getFCost() + cost[i]);
 				m_Hijos[i].setHCost(calcHCost(m_Hijos[i].getPosX(), m_Hijos[i].getPosZ()));
 				m_Hijos[i].setCost(m_Hijos[i].getFCost() + m_Hijos[i].getHCost());
 				m_Hijos[i].setPadre(this);
@@ -117,22 +121,27 @@ public class Node {
 				DIAG_INC_COST, DIAG_INC_COST, DIAG_INC_COST, DIAG_INC_COST 
 		};
 		m_Hijos = new Node[8];
-		System.out.println("humm");
 		for (int i = 0; i < 8; i++) {
-			if (m_Map == null) {
-				System.out.println("iteracion " + i);
-			}
-			if (m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i]) &&
-				!m_cBaitLib.IsBattlePoint(
-						(double) ((getPosX() + incPosX[i]) * 8), 
-						(double) ((getPosZ() + incPosZ[i]) * 8))) {
+			//if (!m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i]))
+			//	System.out.println("cw ");
+			//if (!m_cBaitLib.IsBattlePoint(
+			//			(double) ((getPosX() + incPosX[i]) * 8), 
+			//			(double) ((getPosZ() + incPosZ[i]) * 8)))
+			//	System.out.println("bp ("+ ((getPosX() + incPosX[i])*8) + 
+			//			" " + ((getPosZ()+incPosZ[i])* 8) + ")   ");
+			if (m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i])) {
 				m_Hijos[i] = new Node();
 				m_Hijos[i].setMap(m_Map);
 				m_Hijos[i].setBaitLib(m_cBaitLib);
 				m_Hijos[i].setTarget(m_fTargetX, m_fTargetZ);
 				m_Hijos[i].setPosX(getPosX() + incPosX[i]);
 				m_Hijos[i].setPosZ(getPosZ() + incPosZ[i]);
-				m_Hijos[i].setFCost(getFCost() + cost[i]);
+				float fExtraCost = 0.0f;
+				if (m_cBaitLib.IsBattlePoint(
+						(double) ((getPosX() + incPosX[i]) * 8), 
+						(double) ((getPosZ() + incPosZ[i]) * 8)))
+					fExtraCost = BATTLE_ZONE_COST;
+				m_Hijos[i].setFCost(getFCost() + cost[i] + fExtraCost);
 				m_Hijos[i].setHCost(calcHCost(m_Hijos[i].getPosX(), m_Hijos[i].getPosZ()));
 				m_Hijos[i].setCost(m_Hijos[i].getFCost() + m_Hijos[i].getHCost());
 				m_Hijos[i].setPadre(this);
@@ -144,6 +153,8 @@ public class Node {
 	public boolean isObjective() {
 		int iObjX = (int) Math.round(m_fTargetX);
 		int iObjZ = (int) Math.round(m_fTargetZ);
+		//if ((Math.abs(iObjX - m_iPosX) < 3) && (Math.abs(iObjZ - m_iPosZ) < 3))
+		//		System.out.println("*** cerca " + iObjX + " " + m_iPosX + "|" + iObjZ + " " + m_iPosZ);
 		return ((iObjX == m_iPosX) && (iObjZ == m_iPosZ)); 
 	}
 }

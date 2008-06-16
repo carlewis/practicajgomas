@@ -48,12 +48,15 @@ public class SoldierComm extends Communication {
 			m_cSoldier.AddTaskGoto(point);
 			// TODO El metodo lanza una tarea AddTask para ir al sitio. 	
 		}
-		if (ContentsToCommand(s) == BaitCommand.WAIT) {
+		else if (ContentsToCommand(s) == BaitCommand.WAIT) {
 			m_cSoldier.WaitForCommand();
 		}
-		if (ContentsToCommand(s) == BaitCommand.WITHDRAWPOINT) {
+		else if (ContentsToCommand(s) == BaitCommand.WITHDRAWPOINT) {
 			//
 			m_cSoldier.SetWithdrawPoint(ContentsToCommandPoint(s));
+		}
+		else if (ContentsToCommand(s) == BaitCommand.ATTACK) {
+			m_cSoldier.AttackCommand(ContentsToCommandPoint(s), ContentsToCommand2Point(s));
 		}
 		//m_cSoldier.
 	}
@@ -135,15 +138,19 @@ public class SoldierComm extends Communication {
 					System.out.println(m_cSoldier.getName() + " yo soy el puteado");
 					m_cSoldier.SetAgentTeamNames(msgLO.getContent());
 				}
-				else if (role == BaitRole.BAIT_SOLDIER) 
+				else if (role == BaitRole.BAIT_SOLDIER) {
 					System.out.println(m_cSoldier.getName() + " yo soy el que respalda al puteado");
-				// Una vez sabemos el papel que jugamos modificamos los umbrales
+					// Una vez sabemos el papel que jugamos modificamos los umbrales
+					m_cSoldier.setAgentRole(BaitRole.BAIT_SOLDIER);
+				}
 				m_cSoldier.SetThresholdValues();
 			}
 			else if (msgLO.getConversationId() == "INFORM") {
 				// indica al lider que el emisor esta preparado (si es un mensaje ready)
 				if (ContentsToMessage(msgLO.getContent()) == BaitMessage.READY) 
 					m_cSoldier.SetAgentPrepared(msgLO.getSender());
+				else if (ContentsToMessage(msgLO.getContent()) == BaitMessage.GOAL_TAKEN)
+					m_cSoldier.AgentTakeGoalPack(msgLO.getSender());
 			}
 			else if (msgLO.getConversationId() == "COMMAND") {
 				ExecuteCommand(msgLO.getContent());

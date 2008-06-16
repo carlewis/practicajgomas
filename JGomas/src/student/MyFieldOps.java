@@ -51,7 +51,7 @@ public class MyFieldOps extends CFieldOps {
 	 */
 	protected String m_sWaitPosition;
 	/** Estados del fieldops */
-	protected enum FieldOpState { NO_STATE, MOVING, WAIT, WORK };
+	protected enum FieldOpState { NO_STATE, MOVING, WAIT, MOVING_TO_WORK, WORK };
 	/** Estado actual del fieldops */
 	protected FieldOpState m_nFieldOpState = FieldOpState.NO_STATE;
 	
@@ -89,7 +89,10 @@ public class MyFieldOps extends CFieldOps {
 			ServiceDescription sd = new ServiceDescription();
 			sd.setType(m_sCommunicationsService);
 			dfd.addServices(sd);
-			DFAgentDescription[] result = DFService.search(this, dfd);
+			DFAgentDescription[] result = null;
+			do {
+				result = DFService.search(this, dfd);
+			} while (result.length < 10);
 			if (result.length > 0) {
 				// Envia un mensaje de suscripcion a cada uno
 				System.out.println("Existen agentes");
@@ -98,7 +101,7 @@ public class MyFieldOps extends CFieldOps {
 					AID agent = result[i].getName();
 					// No nos lo enviamos a nosotros mismos
 					if (!agent.equals(getName())) {
-						System.out.println(getName() + " a " + agent.getName());
+						//System.out.println(getName() + " a " + agent.getName());
 						msg.addReceiver(agent);
 					}
 				}
@@ -119,44 +122,6 @@ public class MyFieldOps extends CFieldOps {
 	private void LaunchCommunicationsBehaviour() {
 		addBehaviour(new FieldOpComm(this));
 	}		
-		/*new CyclicBehaviour() {
-			private static final long serialVersionUID = 1L;
-
-			private MyComponents.AgentType ContentsToAgentType(String s) {
-				StringTokenizer tokens = new StringTokenizer(s);
-				tokens.nextToken(); // Quita (
-				//AgentType retValue = (AgentType) Integer.parseInt(tokens.nextToken());
-				return MyComponents.parseAgentType(tokens.nextToken());
-			}
-			private BaitRole ContentsToBaitRole(String s) {
-				StringTokenizer tokens = new StringTokenizer(s);
-				tokens.nextToken(); // Quita (
-				return MyComponents.parseBaitRole(tokens.nextToken());
-			}
-			public void action() {
-				MessageTemplate template = MessageTemplate.MatchAll();
-				ACLMessage msgLO = receive(template);
-				if (msgLO != null) {
-					if (msgLO.getConversationId() == "COMM_SUBSCRIPTION") {
-						// 
-						AID cSender = msgLO.getSender();
-						System.out.println("Leida suscripcion de agente tipo " + 
-								ContentsToAgentType(msgLO.getContent()));
-						cSender.getName();
-						//AgentType nType = ContentsToAgentType(msgLO.getContents());
-					}
-					else if (msgLO.getConversationId() == "ROLE_PROTOCOL") {
-						m_nAgentRole = ContentsToBaitRole(msgLO.getContent());
-						if (ContentsToBaitRole(msgLO.getContent()) == BaitRole.BAIT_FIELDOP)
-							System.out.println(getName() + " yo soy el que lleva municion al puteado");	
-					}
-					// else if (msgLO.getConversationId() == "LO QUE SEA") {}
-				}
-	
-			}
-		});
-		
-	}*/
 	/**
 	 * @param aid
 	 */
@@ -170,9 +135,10 @@ public class MyFieldOps extends CFieldOps {
 		System.out.println("fieldops: añadiendo tarea esperar " + CTask.TASK_GOTO_POSITION + " " + 
 				(m_CurrentTask.getPriority() + 1));
 		m_sWaitPosition = " ( " + m_Movement.getPosition().x + " , 0.0 , " + m_Movement.getPosition().z + " ) ";
-		m_nFieldOpState = FieldOpState.WAIT;
 		AddTask(CTask.TASK_GOTO_POSITION, getAID(), m_sWaitPosition, m_CurrentTask.getPriority() + 1);
 		System.out.println("fieldops: " + m_CurrentTask.getType() + " " + m_CurrentTask.getPriority());
+		m_nFieldOpState = FieldOpState.WAIT;
+		
 	}
 	/**
 	 * Añade una tarea TASK_WALKING_PATH para ir a un punto
@@ -181,20 +147,21 @@ public class MyFieldOps extends CFieldOps {
 		System.out.println("añadiendo tarea ir a ( " + point.x + " , " + point.z + " )");
 		// TODO
 		System.out.println("punto " + point.x + " " + point.z);
-		/*if (m_cSolver == null) {
-			m_cSolver = new PathFindingSolver();
-			m_cSolver.setMap(m_Map);
-		}*/
 		m_AStarPath = m_cSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
 				point.x, point.z);
 		if (m_AStarPath == null)
-			System.out.println("fieldops: la ruta es null");
+			System.out.println("fieldops: m_AStarPath es null");
+		else if (m_AStarPath[0] == null)
+			System.out.println("fieldops: m_AStarPath[0] es null");
 		String startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
 		m_iAStarPathIndex = 0;
 		System.out.print(" ( " + m_AStarPath[0].x + " , " + m_AStarPath[0].z + " )->"); 
 		System.out.println(" ( " + m_AStarPath[m_AStarPath.length - 1].x + " , " + m_AStarPath[m_AStarPath.length - 1].z + " )"); 
 		AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
-		m_nFieldOpState = FieldOpState.MOVING;
+		if (m_nFieldOpState == FieldOpState.NO_STATE)
+			m_nFieldOpState = FieldOpState.MOVING;
+		else if (m_nFieldOpState == FieldOpState.WAIT)
+			m_nFieldOpState = FieldOpState.MOVING_TO_WORK;
 	}	
 	/**
 	 * 
@@ -216,9 +183,9 @@ public class MyFieldOps extends CFieldOps {
 	 * Asigna los umbrales dependiendo del tipo de papel que juega dentro de la estrategia
 	 */
 	protected void SetThresholdValues() {
-		if (m_nAgentRole == BaitRole.BAIT)
+/*		if (m_nAgentRole == BaitRole.BAIT)
 			m_Threshold.SetAmmo(10);
-		//m_Threshold.SetAmmo
+*/		//m_Threshold.SetAmmo
 	}
 	/**
 	 * 
@@ -586,8 +553,14 @@ public class MyFieldOps extends CFieldOps {
 			
 			m_AimedAgent = s;
 			if (m_nAgentRole == BaitRole.BAIT_FIELDOP) {
-					// TODO Hay que devolver true o false dependiendo de si estan esperando
-					// al señuelo o ya están atacando
+				// TODO Hay que devolver true o false dependiendo de si estan esperando
+				// al señuelo o ya están atacando
+				return false;
+			}
+			else if (m_nAgentRole == BaitRole.TEAM_SOLDIER) {
+				if ((m_nFieldOpState == FieldOpState.WAIT) || 
+						(m_nFieldOpState == FieldOpState.MOVING) ||
+						(m_nFieldOpState == FieldOpState.MOVING_TO_WORK))
 					return false;
 			}
 			System.out.println("veo un tio");
@@ -608,15 +581,21 @@ public class MyFieldOps extends CFieldOps {
 	 * 
 	 */
 	protected void PerformLookAction() {
-if (DEBUG_FIELDOP) {
-if (m_nAgentRole == BaitRole.BAIT_FIELDOP)
-	System.out.println("Fieldop: " + m_CurrentTask.getType() + " " + 
-	m_CurrentTask.getPriority() + " (" + m_Movement.getPosition().x + "," + 
-	m_Movement.getPosition().z + ")" + m_Movement.getDestination().x + "-" + 
-	m_Movement.getDestination().z + "   " + m_iAStarPathIndex);
-}
-		if ((m_nFieldOpState == FieldOpState.WAIT) && (m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE))
-			AddTask(CTask.TASK_GOTO_POSITION, getAID(), m_sWaitPosition, m_CurrentTask.getPriority() + 1);
+		if (DEBUG_FIELDOP) {
+			if (m_nAgentRole != BaitRole.BAIT_FIELDOP)
+				System.out.println("Fieldop: " + m_CurrentTask.getType() + " " + 
+						m_CurrentTask.getPriority() + " (" + m_Movement.getPosition().x + "," + 
+						m_Movement.getPosition().z + ")" + m_Movement.getDestination().x + "-" + 
+						m_Movement.getDestination().z);	
+		}
+		if (m_nFieldOpState == FieldOpState.WAIT) {
+			if (m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE)		
+				AddTask(CTask.TASK_GOTO_POSITION, getAID(), m_sWaitPosition, m_CurrentTask.getPriority() + 1);
+		}
+		else if (m_nFieldOpState == FieldOpState.WORK) {
+			if (m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE)		
+				AddTask(CTask.TASK_GOTO_POSITION, getAID(), m_sWaitPosition, m_CurrentTask.getPriority() + 1);
+		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -664,6 +643,10 @@ if (DEBUG_FIELDOP) {
 				if (m_nFieldOpState == FieldOpState.MOVING) {
 					SendReadyMsgToLeader();
 					m_nFieldOpState = FieldOpState.WAIT;
+					m_sWaitPosition = " ( " + m_Movement.getPosition().x + " , 0.0 , " + m_Movement.getPosition().z + " ) ";
+				}
+				else if (m_nFieldOpState == FieldOpState.MOVING_TO_WORK) {
+					m_nFieldOpState = FieldOpState.WORK;
 					m_sWaitPosition = " ( " + m_Movement.getPosition().x + " , 0.0 , " + m_Movement.getPosition().z + " ) ";
 				}
 				super.PerformTargetReached(_CurrentTask);

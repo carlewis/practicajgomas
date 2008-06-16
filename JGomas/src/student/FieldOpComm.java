@@ -65,7 +65,7 @@ public class FieldOpComm extends Communication {
 				m_cFieldOp.setAgentRole(role);
 				if (ContentsToBaitRole(msgLO.getContent()) == BaitRole.BAIT_MEDIC) {
 					// TODO Caracteristicas propias del medico del señuelo
-					System.out.println(m_cFieldOp.getName() + " yo soy el medico del puteado");
+					System.out.println(m_cFieldOp.getName() + " yo soy el fieldop del puteado");
 				}
 				// Una vez sabemos el papel que jugamos modificamos los umbrales
 				m_cFieldOp.SetThresholdValues();
