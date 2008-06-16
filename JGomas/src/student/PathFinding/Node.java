@@ -77,10 +77,6 @@ public class Node {
 		//return (float)Math.sqrt((posX - iObjX) * (posX - iObjX) + (posZ - iObjZ) * (posZ - iObjZ));
 		// Distancia manhatan
 		return Math.abs(posX - iObjX) + Math.abs(posZ - iObjZ);
-/*		if (Math.abs(posX - iObjX) > Math.abs(posZ - iObjZ)) 
-			return Math.abs(posX - iObjX);
-		else
-			return Math.abs(posZ - iObjZ);*/
 	}
 	
 	// Calcula el coste del nodo de partida según la evaluación de la función heurística
@@ -88,7 +84,6 @@ public class Node {
 		m_fFCost = 0;
 		m_fHCost = calcHCost(m_iPosX, m_iPosZ);
 		m_fTotalCost = m_fHCost;
-		//System.out.println("El coste del nodo inicial es " + m_fTotalCost);
 	}
 	
 	public Node[] getChildren() {
@@ -122,13 +117,6 @@ public class Node {
 		};
 		m_Hijos = new Node[8];
 		for (int i = 0; i < 8; i++) {
-			//if (!m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i]))
-			//	System.out.println("cw ");
-			//if (!m_cBaitLib.IsBattlePoint(
-			//			(double) ((getPosX() + incPosX[i]) * 8), 
-			//			(double) ((getPosZ() + incPosZ[i]) * 8)))
-			//	System.out.println("bp ("+ ((getPosX() + incPosX[i])*8) + 
-			//			" " + ((getPosZ()+incPosZ[i])* 8) + ")   ");
 			if (m_Map.CanWalk(getPosX() + incPosX[i], getPosZ() + incPosZ[i])) {
 				m_Hijos[i] = new Node();
 				m_Hijos[i].setMap(m_Map);
@@ -153,8 +141,6 @@ public class Node {
 	public boolean isObjective() {
 		int iObjX = (int) Math.round(m_fTargetX);
 		int iObjZ = (int) Math.round(m_fTargetZ);
-		//if ((Math.abs(iObjX - m_iPosX) < 3) && (Math.abs(iObjZ - m_iPosZ) < 3))
-		//		System.out.println("*** cerca " + iObjX + " " + m_iPosX + "|" + iObjZ + " " + m_iPosZ);
 		return ((iObjX == m_iPosX) && (iObjZ == m_iPosZ)); 
 	}
 }

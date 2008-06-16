@@ -27,8 +27,7 @@ public class MedicComm extends Communication {
 			// Sacamos la direccion del mensaje
 			Vector3D point = ContentsToCommandPoint(s);
 			// Se llama al metodo que sea del objeto m_cMedic
-			m_cMedic.AddTaskGoto(point);
-			// TODO El metodo lanza una tarea AddTask para ir al sitio. 	
+			m_cMedic.AddTaskGoto(point);	
 		}
 		if (ContentsToCommand(s) == BaitCommand.WAIT) {
 			m_cMedic.WaitForCommand();
@@ -42,7 +41,7 @@ public class MedicComm extends Communication {
 	 */
 	public void action() {
 		MessageTemplate template = MessageTemplate.MatchAll();
-		// recibir un mensaje
+		// Recibir un mensaje
 		ACLMessage msgLO = m_cMedic.receive(template);
 		if (msgLO != null) {
 			// Mensaje para enlazarse con los otros agentes
@@ -64,8 +63,7 @@ public class MedicComm extends Communication {
 				BaitRole role = ContentsToBaitRole(msgLO.getContent());
 				m_cMedic.setAgentRole(role);
 				if (ContentsToBaitRole(msgLO.getContent()) == BaitRole.BAIT_MEDIC) {
-					// TODO Caracteristicas propias del medico del señuelo
-					System.out.println(m_cMedic.getName() + " yo soy el medico del puteado");
+					System.out.println(m_cMedic.getName() + " yo soy el medico del señuelo");
 				}
 				// Una vez sabemos el papel que jugamos modificamos los umbrales
 				m_cMedic.SetThresholdValues();

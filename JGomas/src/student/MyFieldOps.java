@@ -22,8 +22,6 @@ import es.upv.dsic.gti_ia.jgomas.*;
  */
 public class MyFieldOps extends CFieldOps {
 	
-	private final boolean DEBUG_FIELDOP = false;
-	
 	/**
 	 * 
 	 */
@@ -50,9 +48,13 @@ public class MyFieldOps extends CFieldOps {
 	 * Posicion para esperar en el estado WAIT 
 	 */
 	protected String m_sWaitPosition;
-	/** Estados del fieldops */
+	/** 
+	 * Estados del fieldops 
+	 */
 	protected enum FieldOpState { NO_STATE, MOVING, WAIT, MOVING_TO_WORK, WORK };
-	/** Estado actual del fieldops */
+	/** 
+	 * Estado actual del fieldops 
+	 */
 	protected FieldOpState m_nFieldOpState = FieldOpState.NO_STATE;
 	
 	protected void setup() {
@@ -145,18 +147,12 @@ public class MyFieldOps extends CFieldOps {
 	 */
 	public void AddTaskGoto(Vector3D point) {
 		System.out.println("añadiendo tarea ir a ( " + point.x + " , " + point.z + " )");
-		// TODO
-		System.out.println("punto " + point.x + " " + point.z);
 		m_AStarPath = m_cSolver.FindBaitPath(m_Movement.getPosition().x, m_Movement.getPosition().z,
 				point.x, point.z);
 		if (m_AStarPath == null)
-			System.out.println("fieldops: m_AStarPath es null");
-		else if (m_AStarPath[0] == null)
-			System.out.println("fieldops: m_AStarPath[0] es null");
+			System.out.println("ERROR FIELDOPS: m_AStarPath es null");
 		String startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
 		m_iAStarPathIndex = 0;
-		System.out.print(" ( " + m_AStarPath[0].x + " , " + m_AStarPath[0].z + " )->"); 
-		System.out.println(" ( " + m_AStarPath[m_AStarPath.length - 1].x + " , " + m_AStarPath[m_AStarPath.length - 1].z + " )"); 
 		AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
 		if (m_nFieldOpState == FieldOpState.NO_STATE)
 			m_nFieldOpState = FieldOpState.MOVING;
@@ -167,11 +163,7 @@ public class MyFieldOps extends CFieldOps {
 	 * 
 	 * @param ai
 	 */
-	public void AddAgent(AgentInfo ai) {
-	/*	if (ai.type == AgentType.SOLDIER)
-			m_iTeamSoldiersCount++;
-		m_TeamAgents.add(ai);*/
-	}
+	public void AddAgent(AgentInfo ai) { }
 	/**
 	 * 
 	 * @param role
@@ -426,12 +418,6 @@ public class MyFieldOps extends CFieldOps {
 	 * 
 	 */
 	protected boolean GeneratePath() {
-		/*if ((m_AStarPath = PathFindingSolver.FindPathToTarget(m_Map, m_Movement)) != null) { 
-			String startPos;
-			startPos = " ( " + m_AStarPath[0].x + " , 0.0 , " + m_AStarPath[0].z + " ) ";
-			AddTask(CTask.TASK_WALKING_PATH, getAID(), startPos, m_CurrentTask.getPriority() + 1);
-			return true;
-		}*/
 		return false;
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -553,8 +539,6 @@ public class MyFieldOps extends CFieldOps {
 			
 			m_AimedAgent = s;
 			if (m_nAgentRole == BaitRole.BAIT_FIELDOP) {
-				// TODO Hay que devolver true o false dependiendo de si estan esperando
-				// al señuelo o ya están atacando
 				return false;
 			}
 			else if (m_nAgentRole == BaitRole.TEAM_SOLDIER) {
@@ -563,7 +547,6 @@ public class MyFieldOps extends CFieldOps {
 						(m_nFieldOpState == FieldOpState.MOVING_TO_WORK))
 					return false;
 			}
-			System.out.println("veo un tio");
 			return true; 
 		}
 		m_AimedAgent = null;
@@ -581,13 +564,6 @@ public class MyFieldOps extends CFieldOps {
 	 * 
 	 */
 	protected void PerformLookAction() {
-		if (DEBUG_FIELDOP) {
-			if (m_nAgentRole != BaitRole.BAIT_FIELDOP)
-				System.out.println("Fieldop: " + m_CurrentTask.getType() + " " + 
-						m_CurrentTask.getPriority() + " (" + m_Movement.getPosition().x + "," + 
-						m_Movement.getPosition().z + ")" + m_Movement.getDestination().x + "-" + 
-						m_Movement.getDestination().z);	
-		}
 		if (m_nFieldOpState == FieldOpState.WAIT) {
 			if (m_CurrentTask.getType() == CTask.TASK_GET_OBJECTIVE)		
 				AddTask(CTask.TASK_GOTO_POSITION, getAID(), m_sWaitPosition, m_CurrentTask.getPriority() + 1);
@@ -629,9 +605,6 @@ public class MyFieldOps extends CFieldOps {
 				System.out.println(getLocalName()+ ": Medic cannot leave Medic Packs");
 			break;
 		case CTask.TASK_WALKING_PATH:
-if (DEBUG_FIELDOP) {
-	System.out.println("fieldops targetreached TASK_WALKING_PATH " + m_iAStarPathIndex + "/" + (m_AStarPath.length-1));
-}
 			if (m_iAStarPathIndex < m_AStarPath.length - 1) {
 				m_iAStarPathIndex++;
 				String startPos = " ( " + m_AStarPath[m_iAStarPathIndex].x + " , 0.0 , " + 
@@ -656,7 +629,6 @@ if (DEBUG_FIELDOP) {
 			break;
 			
 		default:
-			System.out.println("otro target reached");
 			super.PerformTargetReached(_CurrentTask);
 			break;
 		}
