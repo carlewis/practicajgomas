@@ -65,6 +65,19 @@ public abstract class Communication extends CyclicBehaviour {
 		z = Double.parseDouble(tokens.nextToken());
 		return new Vector3D(x, y, z);
 	}
+	protected Vector3D ContentsToCommand2Point(String s) {
+		StringTokenizer tokens = new StringTokenizer(s);
+		// ( comando , px , py , pz ,
+		for (int i = 0; i < 9; i++)
+			tokens.nextToken();
+		double x, y, z;
+		x = Double.parseDouble(tokens.nextToken());
+		tokens.nextToken();
+		y = Double.parseDouble(tokens.nextToken());
+		tokens.nextToken();
+		z = Double.parseDouble(tokens.nextToken());
+		return new Vector3D(x, y, z);
+	}
 	
 	protected BaitMessage ContentsToMessage(String s) {
 		StringTokenizer tokens = new StringTokenizer(s);
