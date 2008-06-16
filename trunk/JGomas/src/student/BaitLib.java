@@ -104,9 +104,6 @@ public class BaitLib {
 					i -= 2;
 				}
 			}
-			//ShowPoints();
-			// TODO Mejorar la implementacion para elegir el mejor punto
-			// TODO falta poner el punto de retirada del señuelo
 			if (cFirstQualityPoints.size() != 0) {
 				// Elegimos entre todas las opciones de primera calidad
 				m_cBaitAttackPoint = cFirstQualityPoints.get(0);

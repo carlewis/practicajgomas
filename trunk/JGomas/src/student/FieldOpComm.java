@@ -27,8 +27,7 @@ public class FieldOpComm extends Communication {
 			// Sacamos la direccion del mensaje
 			Vector3D point = ContentsToCommandPoint(s);
 			// Se llama al metodo que sea del objeto m_cMedic
-			m_cFieldOp.AddTaskGoto(point);
-			// TODO El metodo lanza una tarea AddTask para ir al sitio. 	
+			m_cFieldOp.AddTaskGoto(point);	
 		}
 		if (ContentsToCommand(s) == BaitCommand.WAIT) {
 			m_cFieldOp.WaitForCommand();
@@ -64,8 +63,7 @@ public class FieldOpComm extends Communication {
 				BaitRole role = ContentsToBaitRole(msgLO.getContent());
 				m_cFieldOp.setAgentRole(role);
 				if (ContentsToBaitRole(msgLO.getContent()) == BaitRole.BAIT_MEDIC) {
-					// TODO Caracteristicas propias del medico del señuelo
-					System.out.println(m_cFieldOp.getName() + " yo soy el fieldop del puteado");
+					System.out.println(m_cFieldOp.getName() + " yo soy el fieldop del señuelo");
 				}
 				// Una vez sabemos el papel que jugamos modificamos los umbrales
 				m_cFieldOp.SetThresholdValues();

@@ -20,8 +20,6 @@ public class PathFindingSolver {
 	 */
 	public Vector3D[] FindPathToTarget(CTerrainMap map, CMobile movement) {
 		m_cMap = map;
-		//Node.setMap(map);
-		//Node.setTarget(movement.getDestination().x / 8, movement.getDestination().z / 8);
 			
 		System.out.println("El nodo de partida es el actual: " + Math.floor(movement.getPosition().x / 8) + 
 				" " + Math.floor(movement.getPosition().z / 8));
@@ -103,10 +101,6 @@ public class PathFindingSolver {
 	 * en otro caso
 	 */
 	public Vector3D[] FindPathToTarget(double startX, double startZ, double targetX, double targetZ) {
-		//Node.setMap(m_cMap);
-		//Node.setTarget(targetX / 8, targetZ / 8);
-		//System.out.println("Buscando ruta " + Math.floor(startX / 8) + " " + Math.floor(startZ / 8) +
-		//	" --> " + Math.floor(targetX / 8) + " " + Math.floor(targetZ / 8));
 		// Generamos el nodo de partida
 		Node start = new Node();
 		start.setMap(m_cMap);
@@ -153,7 +147,7 @@ public class PathFindingSolver {
 
 		}
 		if (!objReached) {
-			System.out.println("-> no se alcanzó el objetivo: (" + startX + "," + 
+			System.out.println("ERROR -> no se alcanzó el objetivo: (" + startX + "," + 
 					startZ + ")->(" + targetX + "," + targetZ + ") Nodos: ");
 			Node nodo = act;
 			while (nodo != null) {
@@ -236,7 +230,7 @@ public class PathFindingSolver {
 			OpenList.checkList(ClosedList);
 		}
 		if (!objReached) {
-			System.out.println("-> no se alcanzó el objetivo: (" + startX + "," + 
+			System.out.println("ERROR -> no se alcanzó el objetivo: (" + startX + "," + 
 					startZ + ")->(" + targetX + "," + targetZ + ") Nodos: ");
 			Node nodo = act;
 			while (nodo != null) {
@@ -268,7 +262,6 @@ public class PathFindingSolver {
 	 * @return true si es posible llegar en linea recta, false en otro caso
 	 */
 	public boolean CheckDirectPath(Vector3D origin, Vector3D goal) {
-		//System.out.print("Chequeando (" + origin.x + ", " + origin.z + ")->(" + goal.x + ", " + goal.z + ")...");
 		double dIncX = goal.x - origin.x;
 		double dIncZ = goal.z - origin.z;
 		long steps = Math.round(Math.abs(dIncX) + Math.abs(dIncZ));
@@ -279,11 +272,9 @@ public class PathFindingSolver {
 			int posX = (int) Math.round((origin.x + dIncX * i) / 8);
 			int posZ = (int) Math.round((origin.z + dIncZ * i) / 8);
 			if (!m_cMap.CanWalk(posX, posZ)) {
-				//System.out.println("no");
 				return false;
 			}
 		}
-		//System.out.println("si");
 		return true;
 	}
 

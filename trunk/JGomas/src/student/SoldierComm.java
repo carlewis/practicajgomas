@@ -15,9 +15,13 @@ import student.MyComponents.LeaderMessage;
 
 @SuppressWarnings("serial")
 public class SoldierComm extends Communication {
-	/** Puntero al agente */
+	/**
+	 *  Puntero al agente 
+	 */
 	private MySoldier m_cSoldier = null;
-	/** Puja para ser el lider */
+	/**
+	 * Puja para ser el lider 
+	 */
 	private double m_fLeaderBid;
 	
 	public SoldierComm(MySoldier cSoldier, double fBid) {
@@ -108,23 +112,16 @@ public class SoldierComm extends Communication {
 					m_cSoldier.setExistsLeader(true);
 					m_cSoldier.setTeamLeader(msgLO.getSender());
 					m_cSoldier.setWaitAnswer(false);
-					//m_bExistsLeader = true;
-					//m_TeamLeader = msgLO.getSender();
-					//m_bWaitAnswer = false;
 				}
 				else if (nType == LeaderMessage.YOU_WIN) {
 					// No existe un lider que no sea yo -> Sigue comunicando
 					m_cSoldier.setExistsLeader(false);
 					m_cSoldier.setTeamLeader(m_cSoldier.getAID());
 					m_cSoldier.setWaitAnswer(false);
-					//m_bExistsLeader = false;
-					//m_TeamLeader = getAID();
-					//m_bWaitAnswer = false;
 				}
 				else if (nType == LeaderMessage.ALREADY_EXISTS) {
 					// Sigue buscando
 					m_cSoldier.setWaitAnswer(false);
-					//m_bWaitAnswer = false;
 				}
 				else if (nType == LeaderMessage.FINAL_LEADER) {
 					m_cSoldier.setTeamLeader(msgLO.getSender());
